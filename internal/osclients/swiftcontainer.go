@@ -50,7 +50,13 @@ func NewSwiftContainerClient(providerClient *gophercloud.ProviderClient, provide
 		return nil, fmt.Errorf("failed to create swiftcontainer service client: %v", err)
 	}
 
-	return &swiftContainerClient{client}, nil
+	return NewSwiftContainerClientFromServiceClient(client), nil
+}
+
+// NewSwiftContainerClientFromServiceClient returns a SwiftContainerClient wrapping
+// the given gophercloud ServiceClient. This is primarily useful for testing.
+func NewSwiftContainerClientFromServiceClient(client *gophercloud.ServiceClient) SwiftContainerClient {
+	return &swiftContainerClient{client}
 }
 
 func (c swiftContainerClient) ListContainers(ctx context.Context, listOpts containers.ListOptsBuilder) iter.Seq2[*containers.Container, error] {
