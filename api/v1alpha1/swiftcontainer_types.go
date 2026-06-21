@@ -129,3 +129,57 @@ type SwiftContainerResourceSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="storagePolicy is immutable"
 	StoragePolicy *string `json:"storagePolicy,omitempty"`
 }
+
+// SwiftContainerResourceStatus represents the observed state of a Swift container.
+type SwiftContainerResourceStatus struct {
+	// name is the name of the Swift container.
+	// +kubebuilder:validation:MaxLength=256
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// bytesUsed is the total number of bytes stored in the container.
+	// +optional
+	BytesUsed int64 `json:"bytesUsed,omitempty"`
+
+	// objectCount is the number of objects stored in the container.
+	// +optional
+	ObjectCount int64 `json:"objectCount,omitempty"`
+
+	// metadata is the list of observed metadata key-value pairs on the container.
+	// +listType=atomic
+	// +optional
+	Metadata []SwiftContainerMetadataStatus `json:"metadata,omitempty"`
+
+	// containerRead is the current X-Container-Read ACL, defining who can
+	// read objects in the container.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	ContainerRead string `json:"containerRead,omitempty"`
+
+	// containerWrite is the current X-Container-Write ACL, defining who can
+	// write objects to the container.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	ContainerWrite string `json:"containerWrite,omitempty"`
+
+	// storagePolicy is the name of the storage policy assigned to the container.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	StoragePolicy string `json:"storagePolicy,omitempty"`
+
+	// versions is the container where object versions are stored, if versioning
+	// is enabled on this container.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	Versions string `json:"versions,omitempty"`
+
+	// quotaBytes is the quota on the maximum number of bytes that can be
+	// stored in the container, if set.
+	// +optional
+	QuotaBytes *int64 `json:"quotaBytes,omitempty"`
+
+	// quotaCount is the quota on the maximum number of objects that can be
+	// stored in the container, if set.
+	// +optional
+	QuotaCount *int64 `json:"quotaCount,omitempty"`
+}
