@@ -3576,7 +3576,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: key
       type:
         scalar: string
-      default: ""
     - name: value
       type:
         scalar: string

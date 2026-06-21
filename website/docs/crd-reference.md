@@ -4754,7 +4754,7 @@ _Appears in:_
 | `name` _string_ | name is the name of the Swift container. |  | MaxLength: 256 <br />Optional: \{\} <br /> |
 | `bytesUsed` _integer_ | bytesUsed is the total number of bytes stored in the container. |  | Optional: \{\} <br /> |
 | `objectCount` _integer_ | objectCount is the number of objects stored in the container. |  | Optional: \{\} <br /> |
-| `metadata` _[SwiftContainerMetadataStatus](#swiftcontainermetadatastatus) array_ | Refer to Kubernetes API documentation for fields of `metadata`. |  | Optional: \{\} <br /> |
+| `metadata` _[SwiftContainerMetadataStatus](#swiftcontainermetadatastatus) array_ | Refer to Kubernetes API documentation for fields of `metadata`. |  | MaxItems: 64 <br />Optional: \{\} <br /> |
 | `containerRead` _string_ | containerRead is the current X-Container-Read ACL, defining who can<br />read objects in the container. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |
 | `containerWrite` _string_ | containerWrite is the current X-Container-Write ACL, defining who can<br />write objects to the container. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |
 | `storagePolicy` _string_ | storagePolicy is the name of the storage policy assigned to the container. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |

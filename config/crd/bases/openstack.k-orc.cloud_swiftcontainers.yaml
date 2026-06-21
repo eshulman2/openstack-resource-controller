@@ -364,6 +364,7 @@ spec:
                           maxLength: 255
                           type: string
                       type: object
+                    maxItems: 64
                     type: array
                     x-kubernetes-list-type: atomic
                   name:

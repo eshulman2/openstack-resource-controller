@@ -32,7 +32,7 @@ type SwiftContainerMetadata struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=255
 	// +required
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 
 	// value is the value of the metadata item.
 	// +kubebuilder:validation:MaxLength:=255
@@ -146,6 +146,7 @@ type SwiftContainerResourceStatus struct {
 	ObjectCount int64 `json:"objectCount,omitempty"`
 
 	// metadata is the list of observed metadata key-value pairs on the container.
+	// +kubebuilder:validation:MaxItems:=64
 	// +listType=atomic
 	// +optional
 	Metadata []SwiftContainerMetadataStatus `json:"metadata,omitempty"`

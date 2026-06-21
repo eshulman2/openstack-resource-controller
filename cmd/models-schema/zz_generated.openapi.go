@@ -11920,7 +11920,6 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_SwiftContainerMetadata
 					"key": {
 						SchemaProps: spec.SchemaProps{
 							Description: "key is the name of the metadata item. It will be used as the suffix of the X-Container-Meta-* header.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
