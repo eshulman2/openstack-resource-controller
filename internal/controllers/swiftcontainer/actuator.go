@@ -33,10 +33,12 @@ import (
 	orcerrors "github.com/k-orc/openstack-resource-controller/v2/internal/util/errors"
 )
 
-// osContainerT wraps containers.GetHeader with the container name, since
-// GetHeader does not include the name of the container.
+// osContainerT wraps containers.GetHeader with the container name and
+// metadata, since GetHeader does not include the container name and the
+// X-Container-Meta-* headers are returned separately via ExtractMetadata.
 type osContainerT struct {
-	Name string
+	Name     string
+	Metadata map[string]string
 	containers.GetHeader
 }
 
@@ -69,7 +71,11 @@ func (actuator swiftcontainerActuator) GetOSResourceByID(ctx context.Context, id
 	if err != nil {
 		return nil, progress.WrapError(err)
 	}
-	return &osContainerT{Name: id, GetHeader: *header}, nil
+	metadata, err := actuator.osClient.GetContainerMetadata(ctx, id)
+	if err != nil {
+		return nil, progress.WrapError(err)
+	}
+	return &osContainerT{Name: id, Metadata: metadata, GetHeader: *header}, nil
 }
 
 func (actuator swiftcontainerActuator) ListOSResourcesForAdoption(ctx context.Context, orcObject orcObjectPT) (iter.Seq2[*osContainerT, error], bool) {
@@ -87,7 +93,12 @@ func (actuator swiftcontainerActuator) ListOSResourcesForAdoption(ctx context.Co
 			}
 			return
 		}
-		yield(&osContainerT{Name: name, GetHeader: *header}, nil)
+		metadata, err := actuator.osClient.GetContainerMetadata(ctx, name)
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		yield(&osContainerT{Name: name, Metadata: metadata, GetHeader: *header}, nil)
 	}, true
 }
 
@@ -102,7 +113,12 @@ func (actuator swiftcontainerActuator) ListOSResourcesForImport(ctx context.Cont
 				}
 				return
 			}
-			yield(&osContainerT{Name: name, GetHeader: *header}, nil)
+			metadata, err := actuator.osClient.GetContainerMetadata(ctx, name)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			yield(&osContainerT{Name: name, Metadata: metadata, GetHeader: *header}, nil)
 		} else {
 			// List all containers and filter by prefix
 			listOpts := containers.ListOpts{}
@@ -121,7 +137,12 @@ func (actuator swiftcontainerActuator) ListOSResourcesForImport(ctx context.Cont
 					yield(nil, err)
 					return
 				}
-				if !yield(&osContainerT{Name: container.Name, GetHeader: *header}, nil) {
+				metadata, err := actuator.osClient.GetContainerMetadata(ctx, container.Name)
+				if err != nil {
+					yield(nil, err)
+					return
+				}
+				if !yield(&osContainerT{Name: container.Name, Metadata: metadata, GetHeader: *header}, nil) {
 					return
 				}
 			}
@@ -176,13 +197,17 @@ func (actuator swiftcontainerActuator) CreateResource(ctx context.Context, obj o
 		return nil, progress.WrapError(err)
 	}
 
-	// Fetch the created container to return its header
+	// Fetch the created container to return its header and metadata
 	header, err := actuator.osClient.GetContainer(ctx, name, nil)
 	if err != nil {
 		return nil, progress.WrapError(err)
 	}
+	fetchedMetadata, err := actuator.osClient.GetContainerMetadata(ctx, name)
+	if err != nil {
+		return nil, progress.WrapError(err)
+	}
 
-	return &osContainerT{Name: name, GetHeader: *header}, nil
+	return &osContainerT{Name: name, Metadata: fetchedMetadata, GetHeader: *header}, nil
 }
 
 func (actuator swiftcontainerActuator) DeleteResource(ctx context.Context, orcObject orcObjectPT, _ *osContainerT) progress.ReconcileStatus {
