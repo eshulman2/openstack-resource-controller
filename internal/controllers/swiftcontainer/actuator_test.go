@@ -463,12 +463,12 @@ func TestCreateResource(t *testing.T) {
 	t.Run("returns terminal error for invalid container name containing slash", func(t *testing.T) {
 		ctx := context.Background()
 
-		// Simulate what Swift would return for a name containing a slash:
-		// The slash causes gophercloud to make an invalid API call or Swift
-		// returns an error. We simulate this via the error client.
-		terminalErr := orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
-			"container name must not contain '/'")
-		client := osclients.NewSwiftContainerErrorClient(terminalErr)
+		// The actuator explicitly validates the container name before calling
+		// the Swift API. A slash in the name is caught early and returned as a
+		// terminal error with a message mentioning "forward slashes".
+		// (Kubebuilder validation normally prevents this from reaching the
+		// controller, but in unit tests API validation is not enforced.)
+		client := &mockSwiftContainerClient{}
 		actuator := swiftcontainerActuator{client}
 		// Use a name that bypasses kubebuilder validation (in unit tests, API
 		// validation is not enforced); this simulates what would happen if a
@@ -568,14 +568,13 @@ func TestContainerNameValidation(t *testing.T) {
 		if !strings.Contains(string(name), "/") {
 			t.Fatal("test setup error: name should contain a slash")
 		}
-		// The kubebuilder validation rule Pattern=`^[^/]+$` enforces this.
-		// At the unit test level, we verify the container name type can hold
-		// slashes (they would be rejected by the webhook), and that the actuator
-		// correctly passes the name through to the client where Swift rejects it.
+		// The actuator validates the name before calling the Swift API.
+		// A slash in the name causes an early terminal error with a message
+		// mentioning "forward slashes". (Kubebuilder pattern validation would
+		// normally catch this before it reaches the controller, but in unit
+		// tests API validation is not enforced.)
 		ctx := context.Background()
-		terminalErr := orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
-			"invalid container name")
-		client := osclients.NewSwiftContainerErrorClient(terminalErr)
+		client := &mockSwiftContainerClient{}
 		actuator := swiftcontainerActuator{client}
 		orcObject := &orcv1alpha1.SwiftContainer{
 			ObjectMeta: metav1.ObjectMeta{Name: "invalid"},
@@ -594,6 +593,9 @@ func TestContainerNameValidation(t *testing.T) {
 		var termErr *orcerrors.TerminalError
 		if !errors.As(err, &termErr) {
 			t.Errorf("expected TerminalError for invalid name, got %T: %v", err, err)
+		}
+		if !strings.Contains(termErr.Error(), "forward slashes") {
+			t.Errorf("expected error message to mention 'forward slashes', got: %v", termErr.Error())
 		}
 	})
 

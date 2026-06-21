@@ -169,6 +169,15 @@ func (actuator swiftcontainerActuator) CreateResource(ctx context.Context, obj o
 
 	name := getResourceName(obj)
 
+	// Swift treats '/' as a path separator in container names, making the name
+	// invalid at the API level. Validate explicitly to provide a clear error
+	// message rather than a confusing HTTP error from gophercloud.
+	if strings.Contains(name, "/") {
+		return nil, progress.WrapError(
+			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
+				"container name must not contain forward slashes ('/')"))
+	}
+
 	createOpts := containers.CreateOpts{}
 
 	if resource.ContainerRead != nil {
