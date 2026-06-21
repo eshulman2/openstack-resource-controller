@@ -312,7 +312,8 @@ func TestGetContainerMetadata_Success(t *testing.T) {
 		t.Fatal("expected non-nil metadata map")
 	}
 
-	// Gophercloud lowercases the metadata keys after stripping the prefix.
+	// Gophercloud strips the "X-Container-Meta-" prefix. Go's net/http
+	// canonicalises header keys, so "X-Container-Meta-Env" becomes key "Env".
 	if got := meta["Env"]; got != "staging" {
 		t.Errorf("metadata[Env]: expected %q, got %q", "staging", got)
 	}

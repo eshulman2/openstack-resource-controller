@@ -175,7 +175,17 @@ func (actuator swiftcontainerActuator) CreateResource(ctx context.Context, obj o
 	if strings.Contains(name, "/") {
 		return nil, progress.WrapError(
 			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
-				"container name must not contain forward slashes ('/')"))
+				"container name must not contain forward slashes"))
+	}
+
+	// Swift limits container names to 256 UTF-8 bytes. The kubebuilder
+	// MaxLength:=256 marker counts Unicode code points, not bytes, so a name
+	// with multi-byte UTF-8 characters can pass API validation yet exceed the
+	// byte limit. Validate explicitly here to produce a clear error message.
+	if len(name) > 256 {
+		return nil, progress.WrapError(
+			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
+				"container name must not exceed 256 bytes"))
 	}
 
 	createOpts := containers.CreateOpts{}
@@ -286,15 +296,28 @@ func (actuator swiftcontainerActuator) reconcileMetadata(ctx context.Context, or
 		return nil
 	}
 
-	// Fetch current metadata via GetContainerMetadata, which returns a
-	// map with keys lowercased by gophercloud's ExtractMetadata.
+	// Fetch current metadata via GetContainerMetadata. Keys are returned in
+	// canonical HTTP header form (e.g. "Env", not "env") because Go's net/http
+	// canonicalises header keys on retrieval.
 	currentMetadata, err := actuator.osClient.GetContainerMetadata(ctx, osResource.Name)
 	if err != nil {
 		return progress.WrapError(err)
 	}
 
-	// Build the desired metadata map from the spec. We lowercase keys for
-	// comparison because gophercloud lowercases them on retrieval.
+	// Build a lowercase-keyed view of current metadata for case-insensitive
+	// comparison. We also track the original canonical key so we can form
+	// correct X-Remove-Container-Meta-<Key> headers when removing entries.
+	currentLower := make(map[string]string, len(currentMetadata))     // lowercase key -> value
+	currentCanonical := make(map[string]string, len(currentMetadata)) // lowercase key -> canonical key
+	for k, v := range currentMetadata {
+		lk := strings.ToLower(k)
+		currentLower[lk] = v
+		currentCanonical[lk] = k
+	}
+
+	// Build the desired metadata map from the spec with lowercase keys so that
+	// comparisons are case-insensitive (metadata key casing is not significant
+	// in Swift).
 	desiredMetadata := make(map[string]string, len(resource.Metadata))
 	for _, m := range resource.Metadata {
 		desiredMetadata[strings.ToLower(m.Key)] = m.Value
@@ -305,16 +328,18 @@ func (actuator swiftcontainerActuator) reconcileMetadata(ctx context.Context, or
 	var toRemove []string
 
 	for key, desiredVal := range desiredMetadata {
-		if currentVal, exists := currentMetadata[key]; !exists || currentVal != desiredVal {
+		if currentVal, exists := currentLower[key]; !exists || currentVal != desiredVal {
 			if toSet == nil {
 				toSet = make(map[string]string)
 			}
 			toSet[key] = desiredVal
 		}
 	}
-	for key := range currentMetadata {
-		if _, desired := desiredMetadata[key]; !desired {
-			toRemove = append(toRemove, key)
+	for lk := range currentLower {
+		if _, desired := desiredMetadata[lk]; !desired {
+			// Use the canonical key so that the X-Remove-Container-Meta-<Key>
+			// header matches what Swift has stored.
+			toRemove = append(toRemove, currentCanonical[lk])
 		}
 	}
 
