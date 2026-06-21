@@ -19,6 +19,7 @@ package swiftcontainer
 import (
 	"context"
 	"iter"
+	"strings"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/objectstorage/v1/containers"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 	orcv1alpha1 "github.com/k-orc/openstack-resource-controller/v2/api/v1alpha1"
 	generic "github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/interfaces"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/progress"
+	"github.com/k-orc/openstack-resource-controller/v2/internal/logging"
 	osclients "github.com/k-orc/openstack-resource-controller/v2/internal/osclients"
 	orcerrors "github.com/k-orc/openstack-resource-controller/v2/internal/util/errors"
 )
@@ -42,9 +44,11 @@ type osContainerT struct {
 type (
 	osResourceT = osContainerT
 
-	createResourceActuator = generic.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT]
-	deleteResourceActuator = generic.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT]
-	helperFactory          = generic.ResourceHelperFactory[orcObjectPT, orcObjectT, resourceSpecT, filterT, osResourceT]
+	createResourceActuator    = generic.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT]
+	deleteResourceActuator    = generic.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT]
+	reconcileResourceActuator = generic.ReconcileResourceActuator[orcObjectPT, osResourceT]
+	resourceReconciler        = generic.ResourceReconciler[orcObjectPT, osResourceT]
+	helperFactory             = generic.ResourceHelperFactory[orcObjectPT, orcObjectT, resourceSpecT, filterT, osResourceT]
 )
 
 type swiftcontainerActuator struct {
@@ -53,6 +57,7 @@ type swiftcontainerActuator struct {
 
 var _ createResourceActuator = swiftcontainerActuator{}
 var _ deleteResourceActuator = swiftcontainerActuator{}
+var _ reconcileResourceActuator = swiftcontainerActuator{}
 
 func (swiftcontainerActuator) GetResourceID(osResource *osContainerT) string {
 	// Swift containers are identified by name
@@ -184,6 +189,120 @@ func (actuator swiftcontainerActuator) DeleteResource(ctx context.Context, orcOb
 	name := getResourceName(orcObject)
 	err := actuator.osClient.DeleteContainer(ctx, name)
 	return progress.WrapError(err)
+}
+
+func (actuator swiftcontainerActuator) GetResourceReconcilers(_ context.Context, _ orcObjectPT, _ *osResourceT, _ generic.ResourceController) ([]resourceReconciler, progress.ReconcileStatus) {
+	return []resourceReconciler{
+		actuator.reconcileACLs,
+		actuator.reconcileMetadata,
+	}, nil
+}
+
+// reconcileACLs compares the desired ACLs from the spec with the current
+// container ACLs and calls UpdateContainer if they differ.
+func (actuator swiftcontainerActuator) reconcileACLs(ctx context.Context, orcObject orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
+	log := ctrl.LoggerFrom(ctx)
+	resource := orcObject.Spec.Resource
+	if resource == nil {
+		return nil
+	}
+
+	// GetHeader.Read and GetHeader.Write are []string parsed from the ACL
+	// headers. We join them back to a comma-separated string for comparison
+	// with the spec which stores ACLs as a single string.
+	currentRead := strings.Join(osResource.Read, ",")
+	currentWrite := strings.Join(osResource.Write, ",")
+
+	desiredRead := ""
+	if resource.ContainerRead != nil {
+		desiredRead = *resource.ContainerRead
+	}
+	desiredWrite := ""
+	if resource.ContainerWrite != nil {
+		desiredWrite = *resource.ContainerWrite
+	}
+
+	if currentRead == desiredRead && currentWrite == desiredWrite {
+		log.V(logging.Debug).Info("Container ACLs are up to date")
+		return nil
+	}
+
+	log.V(logging.Info).Info("Updating container ACLs")
+	updateOpts := containers.UpdateOpts{
+		ContainerRead:  &desiredRead,
+		ContainerWrite: &desiredWrite,
+	}
+	_, err := actuator.osClient.UpdateContainer(ctx, osResource.Name, updateOpts)
+	if err != nil {
+		if !orcerrors.IsRetryable(err) {
+			err = orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration updating container ACLs: "+err.Error(), err)
+		}
+		return progress.WrapError(err)
+	}
+
+	return progress.NeedsRefresh()
+}
+
+// reconcileMetadata compares the desired metadata from the spec with the
+// current container metadata and calls UpdateContainer if they differ.
+func (actuator swiftcontainerActuator) reconcileMetadata(ctx context.Context, orcObject orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
+	log := ctrl.LoggerFrom(ctx)
+	resource := orcObject.Spec.Resource
+	if resource == nil {
+		return nil
+	}
+
+	// Fetch current metadata via GetContainerMetadata, which returns a
+	// map with keys lowercased by gophercloud's ExtractMetadata.
+	currentMetadata, err := actuator.osClient.GetContainerMetadata(ctx, osResource.Name)
+	if err != nil {
+		return progress.WrapError(err)
+	}
+
+	// Build the desired metadata map from the spec. We lowercase keys for
+	// comparison because gophercloud lowercases them on retrieval.
+	desiredMetadata := make(map[string]string, len(resource.Metadata))
+	for _, m := range resource.Metadata {
+		desiredMetadata[strings.ToLower(m.Key)] = m.Value
+	}
+
+	// Find keys to add/update and keys to remove.
+	var toSet map[string]string
+	var toRemove []string
+
+	for key, desiredVal := range desiredMetadata {
+		if currentVal, exists := currentMetadata[key]; !exists || currentVal != desiredVal {
+			if toSet == nil {
+				toSet = make(map[string]string)
+			}
+			toSet[key] = desiredVal
+		}
+	}
+	for key := range currentMetadata {
+		if _, desired := desiredMetadata[key]; !desired {
+			toRemove = append(toRemove, key)
+		}
+	}
+
+	if len(toSet) == 0 && len(toRemove) == 0 {
+		log.V(logging.Debug).Info("Container metadata is up to date")
+		return nil
+	}
+
+	log.V(logging.Info).Info("Updating container metadata")
+	updateOpts := containers.UpdateOpts{
+		Metadata:       toSet,
+		RemoveMetadata: toRemove,
+	}
+	_, err = actuator.osClient.UpdateContainer(ctx, osResource.Name, updateOpts)
+	if err != nil {
+		if !orcerrors.IsRetryable(err) {
+			err = orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration updating container metadata: "+err.Error(), err)
+		}
+		return progress.WrapError(err)
+	}
+
+	return progress.NeedsRefresh()
 }
 
 type swiftcontainerHelperFactory struct{}
