@@ -30,11 +30,10 @@ import (
 // SwiftContainerClient is an interface for interacting with OpenStack Swift containers.
 type SwiftContainerClient interface {
 	ListContainers(ctx context.Context, listOpts containers.ListOptsBuilder) iter.Seq2[*containers.Container, error]
-	CreateContainer(ctx context.Context, name string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error)
-	DeleteContainer(ctx context.Context, name string) (*containers.DeleteHeader, error)
-	GetContainer(ctx context.Context, name string) (*containers.GetHeader, error)
-	GetContainerMetadata(ctx context.Context, name string) (map[string]string, error)
-	UpdateContainer(ctx context.Context, name string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error)
+	CreateContainer(ctx context.Context, containerName string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error)
+	GetContainer(ctx context.Context, containerName string, opts containers.GetOptsBuilder) (*containers.GetHeader, error)
+	DeleteContainer(ctx context.Context, containerName string) error
+	UpdateContainer(ctx context.Context, containerName string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error)
 }
 
 type swiftContainerClient struct{ client *gophercloud.ServiceClient }
@@ -60,24 +59,21 @@ func (c swiftContainerClient) ListContainers(ctx context.Context, listOpts conta
 	}
 }
 
-func (c swiftContainerClient) CreateContainer(ctx context.Context, name string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error) {
-	return containers.Create(ctx, c.client, name, opts).Extract()
+func (c swiftContainerClient) CreateContainer(ctx context.Context, containerName string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error) {
+	return containers.Create(ctx, c.client, containerName, opts).Extract()
 }
 
-func (c swiftContainerClient) DeleteContainer(ctx context.Context, name string) (*containers.DeleteHeader, error) {
-	return containers.Delete(ctx, c.client, name).Extract()
+func (c swiftContainerClient) GetContainer(ctx context.Context, containerName string, opts containers.GetOptsBuilder) (*containers.GetHeader, error) {
+	return containers.Get(ctx, c.client, containerName, opts).Extract()
 }
 
-func (c swiftContainerClient) GetContainer(ctx context.Context, name string) (*containers.GetHeader, error) {
-	return containers.Get(ctx, c.client, name, nil).Extract()
+func (c swiftContainerClient) DeleteContainer(ctx context.Context, containerName string) error {
+	_, err := containers.Delete(ctx, c.client, containerName).Extract()
+	return err
 }
 
-func (c swiftContainerClient) GetContainerMetadata(ctx context.Context, name string) (map[string]string, error) {
-	return containers.Get(ctx, c.client, name, nil).ExtractMetadata()
-}
-
-func (c swiftContainerClient) UpdateContainer(ctx context.Context, name string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error) {
-	return containers.Update(ctx, c.client, name, opts).Extract()
+func (c swiftContainerClient) UpdateContainer(ctx context.Context, containerName string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error) {
+	return containers.Update(ctx, c.client, containerName, opts).Extract()
 }
 
 type swiftContainerErrorClient struct{ error }
@@ -97,16 +93,12 @@ func (e swiftContainerErrorClient) CreateContainer(_ context.Context, _ string, 
 	return nil, e.error
 }
 
-func (e swiftContainerErrorClient) DeleteContainer(_ context.Context, _ string) (*containers.DeleteHeader, error) {
+func (e swiftContainerErrorClient) GetContainer(_ context.Context, _ string, _ containers.GetOptsBuilder) (*containers.GetHeader, error) {
 	return nil, e.error
 }
 
-func (e swiftContainerErrorClient) GetContainer(_ context.Context, _ string) (*containers.GetHeader, error) {
-	return nil, e.error
-}
-
-func (e swiftContainerErrorClient) GetContainerMetadata(_ context.Context, _ string) (map[string]string, error) {
-	return nil, e.error
+func (e swiftContainerErrorClient) DeleteContainer(_ context.Context, _ string) error {
+	return e.error
 }
 
 func (e swiftContainerErrorClient) UpdateContainer(_ context.Context, _ string, _ containers.UpdateOptsBuilder) (*containers.UpdateHeader, error) {

@@ -60,7 +60,7 @@ func (swiftcontainerActuator) GetResourceID(osResource *osContainerT) string {
 }
 
 func (actuator swiftcontainerActuator) GetOSResourceByID(ctx context.Context, id string) (*osContainerT, progress.ReconcileStatus) {
-	header, err := actuator.osClient.GetContainer(ctx, id)
+	header, err := actuator.osClient.GetContainer(ctx, id, nil)
 	if err != nil {
 		return nil, progress.WrapError(err)
 	}
@@ -75,7 +75,7 @@ func (actuator swiftcontainerActuator) ListOSResourcesForAdoption(ctx context.Co
 
 	name := getResourceName(orcObject)
 	return func(yield func(*osContainerT, error) bool) {
-		header, err := actuator.osClient.GetContainer(ctx, name)
+		header, err := actuator.osClient.GetContainer(ctx, name, nil)
 		if err != nil {
 			if !orcerrors.IsNotFound(err) {
 				yield(nil, err)
@@ -90,7 +90,7 @@ func (actuator swiftcontainerActuator) ListOSResourcesForImport(ctx context.Cont
 	return func(yield func(*osContainerT, error) bool) {
 		if filter.Name != nil {
 			name := string(*filter.Name)
-			header, err := actuator.osClient.GetContainer(ctx, name)
+			header, err := actuator.osClient.GetContainer(ctx, name, nil)
 			if err != nil {
 				if !orcerrors.IsNotFound(err) {
 					yield(nil, err)
@@ -111,7 +111,7 @@ func (actuator swiftcontainerActuator) ListOSResourcesForImport(ctx context.Cont
 					continue
 				}
 
-				header, err := actuator.osClient.GetContainer(ctx, container.Name)
+				header, err := actuator.osClient.GetContainer(ctx, container.Name, nil)
 				if err != nil {
 					yield(nil, err)
 					return
@@ -172,7 +172,7 @@ func (actuator swiftcontainerActuator) CreateResource(ctx context.Context, obj o
 	}
 
 	// Fetch the created container to return its header
-	header, err := actuator.osClient.GetContainer(ctx, name)
+	header, err := actuator.osClient.GetContainer(ctx, name, nil)
 	if err != nil {
 		return nil, progress.WrapError(err)
 	}
@@ -182,7 +182,7 @@ func (actuator swiftcontainerActuator) CreateResource(ctx context.Context, obj o
 
 func (actuator swiftcontainerActuator) DeleteResource(ctx context.Context, orcObject orcObjectPT, _ *osContainerT) progress.ReconcileStatus {
 	name := getResourceName(orcObject)
-	_, err := actuator.osClient.DeleteContainer(ctx, name)
+	err := actuator.osClient.DeleteContainer(ctx, name)
 	return progress.WrapError(err)
 }
 

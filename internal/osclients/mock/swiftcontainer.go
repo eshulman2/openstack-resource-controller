@@ -58,63 +58,47 @@ func (m *MockSwiftContainerClient) EXPECT() *MockSwiftContainerClientMockRecorde
 }
 
 // CreateContainer mocks base method.
-func (m *MockSwiftContainerClient) CreateContainer(ctx context.Context, name string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error) {
+func (m *MockSwiftContainerClient) CreateContainer(ctx context.Context, containerName string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateContainer", ctx, name, opts)
+	ret := m.ctrl.Call(m, "CreateContainer", ctx, containerName, opts)
 	ret0, _ := ret[0].(*containers.CreateHeader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateContainer indicates an expected call of CreateContainer.
-func (mr *MockSwiftContainerClientMockRecorder) CreateContainer(ctx, name, opts any) *gomock.Call {
+func (mr *MockSwiftContainerClientMockRecorder) CreateContainer(ctx, containerName, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).CreateContainer), ctx, name, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).CreateContainer), ctx, containerName, opts)
 }
 
 // DeleteContainer mocks base method.
-func (m *MockSwiftContainerClient) DeleteContainer(ctx context.Context, name string) (*containers.DeleteHeader, error) {
+func (m *MockSwiftContainerClient) DeleteContainer(ctx context.Context, containerName string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteContainer", ctx, name)
-	ret0, _ := ret[0].(*containers.DeleteHeader)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "DeleteContainer", ctx, containerName)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // DeleteContainer indicates an expected call of DeleteContainer.
-func (mr *MockSwiftContainerClientMockRecorder) DeleteContainer(ctx, name any) *gomock.Call {
+func (mr *MockSwiftContainerClientMockRecorder) DeleteContainer(ctx, containerName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).DeleteContainer), ctx, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).DeleteContainer), ctx, containerName)
 }
 
 // GetContainer mocks base method.
-func (m *MockSwiftContainerClient) GetContainer(ctx context.Context, name string) (*containers.GetHeader, error) {
+func (m *MockSwiftContainerClient) GetContainer(ctx context.Context, containerName string, opts containers.GetOptsBuilder) (*containers.GetHeader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetContainer", ctx, name)
+	ret := m.ctrl.Call(m, "GetContainer", ctx, containerName, opts)
 	ret0, _ := ret[0].(*containers.GetHeader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetContainer indicates an expected call of GetContainer.
-func (mr *MockSwiftContainerClientMockRecorder) GetContainer(ctx, name any) *gomock.Call {
+func (mr *MockSwiftContainerClientMockRecorder) GetContainer(ctx, containerName, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).GetContainer), ctx, name)
-}
-
-// GetContainerMetadata mocks base method.
-func (m *MockSwiftContainerClient) GetContainerMetadata(ctx context.Context, name string) (map[string]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetContainerMetadata", ctx, name)
-	ret0, _ := ret[0].(map[string]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetContainerMetadata indicates an expected call of GetContainerMetadata.
-func (mr *MockSwiftContainerClientMockRecorder) GetContainerMetadata(ctx, name any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainerMetadata", reflect.TypeOf((*MockSwiftContainerClient)(nil).GetContainerMetadata), ctx, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).GetContainer), ctx, containerName, opts)
 }
 
 // ListContainers mocks base method.
@@ -132,16 +116,16 @@ func (mr *MockSwiftContainerClientMockRecorder) ListContainers(ctx, listOpts any
 }
 
 // UpdateContainer mocks base method.
-func (m *MockSwiftContainerClient) UpdateContainer(ctx context.Context, name string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error) {
+func (m *MockSwiftContainerClient) UpdateContainer(ctx context.Context, containerName string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateContainer", ctx, name, opts)
+	ret := m.ctrl.Call(m, "UpdateContainer", ctx, containerName, opts)
 	ret0, _ := ret[0].(*containers.UpdateHeader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateContainer indicates an expected call of UpdateContainer.
-func (mr *MockSwiftContainerClientMockRecorder) UpdateContainer(ctx, name, opts any) *gomock.Call {
+func (mr *MockSwiftContainerClientMockRecorder) UpdateContainer(ctx, containerName, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).UpdateContainer), ctx, name, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).UpdateContainer), ctx, containerName, opts)
 }
