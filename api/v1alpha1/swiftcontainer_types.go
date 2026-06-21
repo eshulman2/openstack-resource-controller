@@ -54,6 +54,41 @@ type SwiftContainerMetadataStatus struct {
 	Value string `json:"value,omitempty"`
 }
 
+// SwiftContainerFilter defines an existing resource by its properties
+// +kubebuilder:validation:MinProperties:=1
+type SwiftContainerFilter struct {
+	// name of the existing resource
+	// +optional
+	Name *SwiftContainerName `json:"name,omitempty"`
+
+	// prefix filters containers by name prefix. Only containers whose names
+	// begin with this prefix will be considered.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +optional
+	Prefix *string `json:"prefix,omitempty"`
+}
+
+// SwiftContainerImport specifies an existing resource which will be imported
+// instead of creating a new one. Swift containers are identified by name
+// rather than UUID.
+// +kubebuilder:validation:MinProperties:=1
+// +kubebuilder:validation:MaxProperties:=1
+type SwiftContainerImport struct {
+	// name contains the name of an existing Swift container to import. Note
+	// that when specifying an import by name, the resource MUST already exist.
+	// The ORC object will enter an error state if the resource does not exist.
+	// +optional
+	Name *SwiftContainerName `json:"name,omitempty"`
+
+	// filter contains a resource query which is expected to return a single
+	// result. The controller will continue to retry if filter returns no
+	// results. If filter returns multiple results the controller will set an
+	// error state and will not continue to retry.
+	// +optional
+	Filter *SwiftContainerFilter `json:"filter,omitempty"`
+}
+
 // SwiftContainerResourceSpec contains the desired state of a Swift container.
 type SwiftContainerResourceSpec struct {
 	// name will be the name of the created Swift container. If not specified,
