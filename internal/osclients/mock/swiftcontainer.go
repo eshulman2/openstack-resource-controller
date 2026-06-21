@@ -101,6 +101,21 @@ func (mr *MockSwiftContainerClientMockRecorder) GetContainer(ctx, containerName,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainer", reflect.TypeOf((*MockSwiftContainerClient)(nil).GetContainer), ctx, containerName, opts)
 }
 
+// GetContainerMetadata mocks base method.
+func (m *MockSwiftContainerClient) GetContainerMetadata(ctx context.Context, containerName string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContainerMetadata", ctx, containerName)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContainerMetadata indicates an expected call of GetContainerMetadata.
+func (mr *MockSwiftContainerClientMockRecorder) GetContainerMetadata(ctx, containerName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContainerMetadata", reflect.TypeOf((*MockSwiftContainerClient)(nil).GetContainerMetadata), ctx, containerName)
+}
+
 // ListContainers mocks base method.
 func (m *MockSwiftContainerClient) ListContainers(ctx context.Context, listOpts containers.ListOptsBuilder) iter.Seq2[*containers.Container, error] {
 	m.ctrl.T.Helper()

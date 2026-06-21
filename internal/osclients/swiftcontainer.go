@@ -32,6 +32,7 @@ type SwiftContainerClient interface {
 	ListContainers(ctx context.Context, listOpts containers.ListOptsBuilder) iter.Seq2[*containers.Container, error]
 	CreateContainer(ctx context.Context, containerName string, opts containers.CreateOptsBuilder) (*containers.CreateHeader, error)
 	GetContainer(ctx context.Context, containerName string, opts containers.GetOptsBuilder) (*containers.GetHeader, error)
+	GetContainerMetadata(ctx context.Context, containerName string) (map[string]string, error)
 	DeleteContainer(ctx context.Context, containerName string) error
 	UpdateContainer(ctx context.Context, containerName string, opts containers.UpdateOptsBuilder) (*containers.UpdateHeader, error)
 }
@@ -67,6 +68,10 @@ func (c swiftContainerClient) GetContainer(ctx context.Context, containerName st
 	return containers.Get(ctx, c.client, containerName, opts).Extract()
 }
 
+func (c swiftContainerClient) GetContainerMetadata(ctx context.Context, containerName string) (map[string]string, error) {
+	return containers.Get(ctx, c.client, containerName, nil).ExtractMetadata()
+}
+
 func (c swiftContainerClient) DeleteContainer(ctx context.Context, containerName string) error {
 	_, err := containers.Delete(ctx, c.client, containerName).Extract()
 	return err
@@ -94,6 +99,10 @@ func (e swiftContainerErrorClient) CreateContainer(_ context.Context, _ string, 
 }
 
 func (e swiftContainerErrorClient) GetContainer(_ context.Context, _ string, _ containers.GetOptsBuilder) (*containers.GetHeader, error) {
+	return nil, e.error
+}
+
+func (e swiftContainerErrorClient) GetContainerMetadata(_ context.Context, _ string) (map[string]string, error) {
 	return nil, e.error
 }
 
