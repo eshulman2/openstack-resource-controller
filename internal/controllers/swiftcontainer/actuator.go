@@ -235,9 +235,8 @@ func (actuator swiftcontainerActuator) CreateResource(ctx context.Context, obj o
 	return &osContainerT{Name: name, Metadata: fetchedMetadata, GetHeader: *header}, nil
 }
 
-func (actuator swiftcontainerActuator) DeleteResource(ctx context.Context, orcObject orcObjectPT, _ *osContainerT) progress.ReconcileStatus {
-	name := getResourceName(orcObject)
-	err := actuator.osClient.DeleteContainer(ctx, name)
+func (actuator swiftcontainerActuator) DeleteResource(ctx context.Context, _ orcObjectPT, osResource *osContainerT) progress.ReconcileStatus {
+	err := actuator.osClient.DeleteContainer(ctx, osResource.Name)
 	return progress.WrapError(err)
 }
 
