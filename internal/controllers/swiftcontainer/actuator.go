@@ -106,6 +106,12 @@ func (actuator swiftcontainerActuator) ListOSResourcesForImport(ctx context.Cont
 	return func(yield func(*osContainerT, error) bool) {
 		if filter.Name != nil {
 			name := string(*filter.Name)
+			// If a prefix filter is also set, verify the name satisfies it.
+			// Without this check a filter {name: "x", prefix: "y-"} would
+			// silently import "x" even though it does not match the prefix.
+			if filter.Prefix != nil && !hasPrefix(name, *filter.Prefix) {
+				return
+			}
 			header, err := actuator.osClient.GetContainer(ctx, name, nil)
 			if err != nil {
 				if !orcerrors.IsNotFound(err) {

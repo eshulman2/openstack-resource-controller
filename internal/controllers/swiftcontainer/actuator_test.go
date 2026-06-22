@@ -243,6 +243,37 @@ func TestListOSResourcesForImport(t *testing.T) {
 			},
 			checks: checks(wantError(errTest)),
 		},
+		{
+			// When both Name and Prefix are set and the named container does not
+			// match the prefix, no results should be returned. Previously the
+			// prefix predicate was silently ignored in the name-lookup branch.
+			name: "finds none when name does not match prefix",
+			filter: orcv1alpha1.SwiftContainerFilter{
+				Name:   ptr.To[orcv1alpha1.SwiftContainerName]("prod-bucket"),
+				Prefix: ptr.To("test-"),
+			},
+			client: &mockSwiftContainerClient{
+				containerData: map[string]mockContainerData{
+					"prod-bucket": {header: containers.GetHeader{}, metadata: map[string]string{}},
+				},
+			},
+			checks: checks(noError, findsN(0)),
+		},
+		{
+			// When both Name and Prefix are set and the named container matches
+			// the prefix, the container should be found normally.
+			name: "finds one when name matches prefix",
+			filter: orcv1alpha1.SwiftContainerFilter{
+				Name:   ptr.To[orcv1alpha1.SwiftContainerName]("test-bucket"),
+				Prefix: ptr.To("test-"),
+			},
+			client: &mockSwiftContainerClient{
+				containerData: map[string]mockContainerData{
+					"test-bucket": {header: containers.GetHeader{}, metadata: map[string]string{}},
+				},
+			},
+			checks: checks(noError, findsN(1), findsID("test-bucket")),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
