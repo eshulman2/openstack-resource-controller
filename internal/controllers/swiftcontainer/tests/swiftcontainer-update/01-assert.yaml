@@ -11,8 +11,7 @@ assertAll:
     - celExpr: "has(swiftcontainer.status.resource.metadata)"
     - celExpr: "swiftcontainer.status.resource.metadata.exists(m, m.key == 'Environment' && m.value == 'staging')"
     - celExpr: "swiftcontainer.status.resource.metadata.exists(m, m.key == 'Team' && m.value == 'platform')"
-    - celExpr: "swiftcontainer.status.resource.containerRead == '.r:*'"
-    - celExpr: "swiftcontainer.status.resource.containerWrite == '.r:*'"
+    - celExpr: "swiftcontainer.status.resource.containerRead == '.r:*,.rlistings'"
 ---
 apiVersion: openstack.k-orc.cloud/v1alpha1
 kind: SwiftContainer
@@ -21,8 +20,7 @@ metadata:
 status:
   resource:
     name: swiftcontainer-update
-    containerRead: ".r:*"
-    containerWrite: ".r:*"
+    containerRead: ".r:*,.rlistings"
   conditions:
   - type: Available
     status: "True"

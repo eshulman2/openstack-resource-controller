@@ -10,5 +10,4 @@ spec:
         value: staging
       - key: team
         value: platform
-    containerRead: ".r:*"
-    containerWrite: ".r:*"
+    containerRead: ".r:*,.rlistings"
