@@ -123,9 +123,9 @@ func TestListContainers_Pagination(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch marker {
 		case "":
-			fmt.Fprint(w, `[{"name":"container-a","count":0,"bytes":0},{"name":"container-b","count":3,"bytes":1024}]`)
+			_, _ = fmt.Fprint(w, `[{"name":"container-a","count":0,"bytes":0},{"name":"container-b","count":3,"bytes":1024}]`)
 		case "container-b":
-			fmt.Fprint(w, `[]`)
+			_, _ = fmt.Fprint(w, `[]`)
 		default:
 			t.Errorf("unexpected marker: %q", marker)
 			w.WriteHeader(http.StatusBadRequest)
@@ -169,7 +169,7 @@ func TestListContainers_Error(t *testing.T) {
 		// propagating the error through yieldPage.
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "not-valid-json-container-data")
+		_, _ = fmt.Fprint(w, "not-valid-json-container-data")
 	})
 
 	server, client := newFakeSwiftServer(t, mux)
