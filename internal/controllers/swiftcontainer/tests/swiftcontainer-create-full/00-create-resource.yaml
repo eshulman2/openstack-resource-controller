@@ -15,5 +15,4 @@ spec:
         value: test
       - key: owner
         value: orc-e2e
-    containerRead: ".r:*"
-    containerWrite: ".r:*"
+    containerRead: ".r:*,.rlistings"

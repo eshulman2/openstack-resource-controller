@@ -60,11 +60,14 @@ func (swiftcontainerStatusWriter) ApplyResourceStatus(_ logr.Logger, osResource 
 
 	// containerRead and containerWrite are stored as []string (parsed from
 	// comma-separated ACL headers); join them back for status reporting.
-	if len(osResource.Read) > 0 {
-		resourceStatus.WithContainerRead(strings.Join(osResource.Read, ","))
+	// Only set the status field if the resulting ACL string is non-empty;
+	// gophercloud may return []string{""} for an absent header, which
+	// should not be surfaced as an empty-string ACL in status.
+	if readACL := strings.Join(osResource.Read, ","); readACL != "" {
+		resourceStatus.WithContainerRead(readACL)
 	}
-	if len(osResource.Write) > 0 {
-		resourceStatus.WithContainerWrite(strings.Join(osResource.Write, ","))
+	if writeACL := strings.Join(osResource.Write, ","); writeACL != "" {
+		resourceStatus.WithContainerWrite(writeACL)
 	}
 
 	if osResource.StoragePolicy != "" {
