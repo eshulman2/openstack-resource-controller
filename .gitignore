@@ -7,6 +7,10 @@
 bin/*
 Dockerfile.cross
 
+# Root-level compiled binaries
+/manager
+/resource-generator
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -42,3 +46,6 @@ __pycache__/
 
 /bundle/
 bundle.Dockerfile
+
+# Forge workflow state (do not commit)
+.forge/
