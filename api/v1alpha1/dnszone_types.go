@@ -16,12 +16,27 @@ limitations under the License.
 
 package v1alpha1
 
+// +kubebuilder:validation:Enum:=PRIMARY;SECONDARY
+type DNSZoneType string
+
+const (
+	DNSZoneTypePrimary   DNSZoneType = "PRIMARY"
+	DNSZoneTypeSecondary DNSZoneType = "SECONDARY"
+)
+
 // DNSZoneResourceSpec contains the desired state of the resource.
 type DNSZoneResourceSpec struct {
 	// name will be the name of the created resource. If not specified, the
 	// name of the ORC object will be used.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="name is immutable"
 	// +optional
 	Name *OpenStackName `json:"name,omitempty"`
+
+	// email is the email address of the administrator for the zone.
+	// +kubebuilder:validation:Format:=email
+	// +kubebuilder:validation:MaxLength:=255
+	// +required
+	Email string `json:"email"`
 
 	// description is a human-readable description for the resource.
 	// +kubebuilder:validation:MinLength:=1
@@ -29,13 +44,16 @@ type DNSZoneResourceSpec struct {
 	// +optional
 	Description *string `json:"description,omitempty"`
 
-	// TODO(scaffolding): Add more types.
-	// To see what is supported, you can take inspiration from the CreateOpts structure from
-	// github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones
-	//
-	// Until you have implemented mutability for the field, you must add a CEL validation
-	// preventing the field being modified:
-	// `// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="<fieldname> is immutable"`
+	// ttl is the Time To Live for the zone in seconds.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	TTL *int32 `json:"ttl,omitempty"`
+
+	// type is the type of the zone.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="type is immutable"
+	// +kubebuilder:default:="PRIMARY"
+	// +optional
+	Type DNSZoneType `json:"type,omitempty"`
 }
 
 // DNSZoneFilter defines an existing resource by its properties
@@ -45,15 +63,26 @@ type DNSZoneFilter struct {
 	// +optional
 	Name *OpenStackName `json:"name,omitempty"`
 
+	// email of the existing resource
+	// +kubebuilder:validation:Format:=email
+	// +kubebuilder:validation:MaxLength:=255
+	// +optional
+	Email *string `json:"email,omitempty"`
+
 	// description of the existing resource
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=255
 	// +optional
 	Description *string `json:"description,omitempty"`
 
-	// TODO(scaffolding): Add more types.
-	// To see what is supported, you can take inspiration from the ListOpts structure from
-	// github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones
+	// ttl of the existing resource
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	TTL *int32 `json:"ttl,omitempty"`
+
+	// type of the existing resource
+	// +optional
+	Type *DNSZoneType `json:"type,omitempty"`
 }
 
 // DNSZoneResourceStatus represents the observed state of the resource.
@@ -63,12 +92,27 @@ type DNSZoneResourceStatus struct {
 	// +optional
 	Name string `json:"name,omitempty"`
 
+	// email is the email contact of the zone.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	Email string `json:"email,omitempty"`
+
 	// description is a human-readable description for the resource.
 	// +kubebuilder:validation:MaxLength=1024
 	// +optional
 	Description string `json:"description,omitempty"`
 
-	// TODO(scaffolding): Add more types.
-	// To see what is supported, you can take inspiration from the DNSZone structure from
-	// github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones
+	// ttl is the Time to Live for the zone in seconds.
+	// +optional
+	TTL *int32 `json:"ttl,omitempty"`
+
+	// type is the type of the zone.
+	// +kubebuilder:validation:MaxLength=255
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// status is the status of the resource.
+	// +kubebuilder:validation:MaxLength=255
+	// +optional
+	Status string `json:"status,omitempty"`
 }

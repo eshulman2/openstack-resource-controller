@@ -22,7 +22,11 @@ package v1alpha1
 // with apply.
 type DNSZoneResourceStatusApplyConfiguration struct {
 	Name        *string `json:"name,omitempty"`
+	Email       *string `json:"email,omitempty"`
 	Description *string `json:"description,omitempty"`
+	TTL         *int32  `json:"ttl,omitempty"`
+	Type        *string `json:"type,omitempty"`
+	Status      *string `json:"status,omitempty"`
 }
 
 // DNSZoneResourceStatusApplyConfiguration constructs a declarative configuration of the DNSZoneResourceStatus type for use with
@@ -39,10 +43,42 @@ func (b *DNSZoneResourceStatusApplyConfiguration) WithName(value string) *DNSZon
 	return b
 }
 
+// WithEmail sets the Email field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Email field is set to the value of the last call.
+func (b *DNSZoneResourceStatusApplyConfiguration) WithEmail(value string) *DNSZoneResourceStatusApplyConfiguration {
+	b.Email = &value
+	return b
+}
+
 // WithDescription sets the Description field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Description field is set to the value of the last call.
 func (b *DNSZoneResourceStatusApplyConfiguration) WithDescription(value string) *DNSZoneResourceStatusApplyConfiguration {
 	b.Description = &value
+	return b
+}
+
+// WithTTL sets the TTL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TTL field is set to the value of the last call.
+func (b *DNSZoneResourceStatusApplyConfiguration) WithTTL(value int32) *DNSZoneResourceStatusApplyConfiguration {
+	b.TTL = &value
+	return b
+}
+
+// WithType sets the Type field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Type field is set to the value of the last call.
+func (b *DNSZoneResourceStatusApplyConfiguration) WithType(value string) *DNSZoneResourceStatusApplyConfiguration {
+	b.Type = &value
+	return b
+}
+
+// WithStatus sets the Status field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Status field is set to the value of the last call.
+func (b *DNSZoneResourceStatusApplyConfiguration) WithStatus(value string) *DNSZoneResourceStatusApplyConfiguration {
+	b.Status = &value
 	return b
 }

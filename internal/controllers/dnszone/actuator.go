@@ -90,7 +90,11 @@ func (actuator dnszoneActuator) ListOSResourcesForImport(ctx context.Context, ob
 	listOpts := zones.ListOpts{
 		Name:        string(ptr.Deref(filter.Name, "")),
 		Description: ptr.Deref(filter.Description, ""),
-		// TODO(scaffolding): Add more import filters
+		Email:       ptr.Deref(filter.Email, ""),
+		Type:        string(ptr.Deref(filter.Type, "")),
+	}
+	if filter.TTL != nil {
+		listOpts.TTL = int(*filter.TTL)
 	}
 
 	return actuator.osClient.ListDNSZones(ctx, listOpts), nil
@@ -106,8 +110,12 @@ func (actuator dnszoneActuator) CreateResource(ctx context.Context, obj orcObjec
 	}
 	createOpts := zones.CreateOpts{
 		Name:        getResourceName(obj),
+		Email:       resource.Email,
 		Description: ptr.Deref(resource.Description, ""),
-		// TODO(scaffolding): Add more fields
+		Type:        string(resource.Type),
+	}
+	if resource.TTL != nil {
+		createOpts.TTL = int(*resource.TTL)
 	}
 
 	osResource, err := actuator.osClient.CreateDNSZone(ctx, createOpts)
@@ -137,8 +145,8 @@ func (actuator dnszoneActuator) updateResource(ctx context.Context, obj orcObjec
 	updateOpts := zones.UpdateOpts{}
 
 	handleDescriptionUpdate(&updateOpts, resource, osResource)
-
-	// TODO(scaffolding): add handler for all fields supporting mutability
+	handleEmailUpdate(&updateOpts, resource, osResource)
+	handleTTLUpdate(&updateOpts, resource, osResource)
 
 	needsUpdate, err := needsUpdate(updateOpts)
 	if err != nil {
@@ -175,6 +183,21 @@ func handleDescriptionUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpe
 	description := ptr.Deref(resource.Description, "")
 	if osResource.Description != description {
 		updateOpts.Description = &description
+	}
+}
+
+func handleEmailUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpecT, osResource *osResourceT) {
+	if osResource.Email != resource.Email {
+		updateOpts.Email = resource.Email
+	}
+}
+
+func handleTTLUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpecT, osResource *osResourceT) {
+	if resource.TTL != nil {
+		ttl := int(*resource.TTL)
+		if osResource.TTL != ttl {
+			updateOpts.TTL = ttl
+		}
 	}
 }
 

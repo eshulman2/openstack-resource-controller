@@ -1726,9 +1726,30 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSZoneFilter(ref comm
 							Format:      "",
 						},
 					},
+					"email": {
+						SchemaProps: spec.SchemaProps{
+							Description: "email of the existing resource",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"description": {
 						SchemaProps: spec.SchemaProps{
 							Description: "description of the existing resource",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ttl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ttl of the existing resource",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type of the existing resource",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1832,6 +1853,14 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSZoneResourceSpec(re
 							Format:      "",
 						},
 					},
+					"email": {
+						SchemaProps: spec.SchemaProps{
+							Description: "email is the email address of the administrator for the zone.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"description": {
 						SchemaProps: spec.SchemaProps{
 							Description: "description is a human-readable description for the resource.",
@@ -1839,7 +1868,22 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSZoneResourceSpec(re
 							Format:      "",
 						},
 					},
+					"ttl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ttl is the Time To Live for the zone in seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type is the type of the zone.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
+				Required: []string{"email"},
 			},
 		},
 	}
@@ -1859,9 +1903,37 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSZoneResourceStatus(
 							Format:      "",
 						},
 					},
+					"email": {
+						SchemaProps: spec.SchemaProps{
+							Description: "email is the email contact of the zone.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"description": {
 						SchemaProps: spec.SchemaProps{
 							Description: "description is a human-readable description for the resource.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ttl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ttl is the Time to Live for the zone in seconds.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type is the type of the zone.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status is the status of the resource.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

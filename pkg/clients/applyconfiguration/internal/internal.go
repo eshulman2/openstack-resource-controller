@@ -412,7 +412,16 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: description
       type:
         scalar: string
+    - name: email
+      type:
+        scalar: string
     - name: name
+      type:
+        scalar: string
+    - name: ttl
+      type:
+        scalar: numeric
+    - name: type
       type:
         scalar: string
 - name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSZoneImport
@@ -430,7 +439,17 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: description
       type:
         scalar: string
+    - name: email
+      type:
+        scalar: string
+      default: ""
     - name: name
+      type:
+        scalar: string
+    - name: ttl
+      type:
+        scalar: numeric
+    - name: type
       type:
         scalar: string
 - name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSZoneResourceStatus
@@ -439,7 +458,19 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: description
       type:
         scalar: string
+    - name: email
+      type:
+        scalar: string
     - name: name
+      type:
+        scalar: string
+    - name: status
+      type:
+        scalar: string
+    - name: ttl
+      type:
+        scalar: numeric
+    - name: type
       type:
         scalar: string
 - name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSZoneSpec

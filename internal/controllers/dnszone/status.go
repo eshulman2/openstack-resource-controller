@@ -52,11 +52,24 @@ func (dnszoneStatusWriter) ApplyResourceStatus(log logr.Logger, osResource *osRe
 	resourceStatus := orcapplyconfigv1alpha1.DNSZoneResourceStatus().
 		WithName(osResource.Name)
 
-	// TODO(scaffolding): add all of the fields supported in the DNSZoneResourceStatus struct
-	// If a zero-value isn't expected in the response, place it behind a conditional
+	if osResource.Email != "" {
+		resourceStatus.WithEmail(osResource.Email)
+	}
 
 	if osResource.Description != "" {
 		resourceStatus.WithDescription(osResource.Description)
+	}
+
+	if osResource.TTL > 0 {
+		resourceStatus.WithTTL(int32(osResource.TTL))
+	}
+
+	if osResource.Type != "" {
+		resourceStatus.WithType(osResource.Type)
+	}
+
+	if osResource.Status != "" {
+		resourceStatus.WithStatus(osResource.Status)
 	}
 
 	statusApply.WithResource(resourceStatus)
