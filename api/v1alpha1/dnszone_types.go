@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// +kubebuilder:validation:Enum:=PRIMARY;SECONDARY
+// +kubebuilder:validation:Enum:=PRIMARY
 type DNSZoneType string
 
 const (
@@ -25,10 +25,12 @@ const (
 )
 
 // DNSZoneResourceSpec contains the desired state of the resource.
+// +kubebuilder:validation:XValidation:rule="self.type == 'PRIMARY' ? (has(self.email) && self.email != ”) : true",message="email is required for PRIMARY zones"
 type DNSZoneResourceSpec struct {
 	// name will be the name of the created resource. If not specified, the
 	// name of the ORC object will be used.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="name is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.endsWith('.')",message="name must end with a period"
 	// +optional
 	Name *OpenStackName `json:"name,omitempty"`
 
@@ -45,7 +47,8 @@ type DNSZoneResourceSpec struct {
 	Description *string `json:"description,omitempty"`
 
 	// ttl is the Time To Live for the zone in seconds.
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=2147483647
 	// +optional
 	TTL *int32 `json:"ttl,omitempty"`
 
@@ -60,6 +63,7 @@ type DNSZoneResourceSpec struct {
 // +kubebuilder:validation:MinProperties:=1
 type DNSZoneFilter struct {
 	// name of the existing resource
+	// +kubebuilder:validation:XValidation:rule="self.endsWith('.')",message="name must end with a period"
 	// +optional
 	Name *OpenStackName `json:"name,omitempty"`
 
@@ -76,7 +80,8 @@ type DNSZoneFilter struct {
 	Description *string `json:"description,omitempty"`
 
 	// ttl of the existing resource
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=2147483647
 	// +optional
 	TTL *int32 `json:"ttl,omitempty"`
 

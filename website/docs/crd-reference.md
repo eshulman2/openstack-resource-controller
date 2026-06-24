@@ -589,8 +589,8 @@ _Appears in:_
 | `name` _[OpenStackName](#openstackname)_ | name of the existing resource |  | MaxLength: 255 <br />MinLength: 1 <br />Pattern: `^[^,]+$` <br />Optional: \{\} <br /> |
 | `email` _string_ | email of the existing resource |  | Format: email <br />MaxLength: 255 <br />Optional: \{\} <br /> |
 | `description` _string_ | description of the existing resource |  | MaxLength: 255 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `ttl` _integer_ | ttl of the existing resource |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `type` _[DNSZoneType](#dnszonetype)_ | type of the existing resource |  | Enum: [PRIMARY SECONDARY] <br />Optional: \{\} <br /> |
+| `ttl` _integer_ | ttl of the existing resource |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+| `type` _[DNSZoneType](#dnszonetype)_ | type of the existing resource |  | Enum: [PRIMARY] <br />Optional: \{\} <br /> |
 
 
 #### DNSZoneImport
@@ -629,8 +629,8 @@ _Appears in:_
 | `name` _[OpenStackName](#openstackname)_ | name will be the name of the created resource. If not specified, the<br />name of the ORC object will be used. |  | MaxLength: 255 <br />MinLength: 1 <br />Pattern: `^[^,]+$` <br />Optional: \{\} <br /> |
 | `email` _string_ | email is the email address of the administrator for the zone. |  | Format: email <br />MaxLength: 255 <br />Required: \{\} <br /> |
 | `description` _string_ | description is a human-readable description for the resource. |  | MaxLength: 255 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `ttl` _integer_ | ttl is the Time To Live for the zone in seconds. |  | Minimum: 1 <br />Optional: \{\} <br /> |
-| `type` _[DNSZoneType](#dnszonetype)_ | type is the type of the zone. | PRIMARY | Enum: [PRIMARY SECONDARY] <br />Optional: \{\} <br /> |
+| `ttl` _integer_ | ttl is the Time To Live for the zone in seconds. |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+| `type` _[DNSZoneType](#dnszonetype)_ | type is the type of the zone. | PRIMARY | Enum: [PRIMARY] <br />Optional: \{\} <br /> |
 
 
 #### DNSZoneResourceStatus
@@ -699,7 +699,7 @@ _Underlying type:_ _string_
 
 
 _Validation:_
-- Enum: [PRIMARY SECONDARY]
+- Enum: [PRIMARY]
 
 _Appears in:_
 - [DNSZoneFilter](#dnszonefilter)

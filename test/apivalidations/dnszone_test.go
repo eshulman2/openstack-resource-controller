@@ -78,7 +78,7 @@ var _ = Describe("ORC DNSZone API validations", func() {
 			p.Spec.WithImport(applyconfigv1alpha1.DNSZoneImport().WithFilter(applyconfigv1alpha1.DNSZoneFilter()))
 		},
 		applyValidFilter: func(p *applyconfigv1alpha1.DNSZoneApplyConfiguration) {
-			p.Spec.WithImport(applyconfigv1alpha1.DNSZoneImport().WithFilter(applyconfigv1alpha1.DNSZoneFilter().WithName("foo")))
+			p.Spec.WithImport(applyconfigv1alpha1.DNSZoneImport().WithFilter(applyconfigv1alpha1.DNSZoneFilter().WithName("foo.")))
 		},
 		applyManaged: func(p *applyconfigv1alpha1.DNSZoneApplyConfiguration) {
 			p.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyManaged)
@@ -118,7 +118,7 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
 			WithEmail("admin@example.com").
 			WithType(orcv1alpha1.DNSZoneType("INVALID")))
-		Expect(applyObj(ctx, dnszone, patch)).NotTo(Succeed())
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("Unsupported value")))
 	})
 
 	DescribeTable("should permit valid type enum values",
@@ -131,8 +131,16 @@ var _ = Describe("ORC DNSZone API validations", func() {
 			Expect(applyObj(ctx, dnszone, patch)).To(Succeed())
 		},
 		Entry("PRIMARY", orcv1alpha1.DNSZoneTypePrimary),
-		Entry("SECONDARY", orcv1alpha1.DNSZoneTypeSecondary),
 	)
+
+	It("should reject SECONDARY type as unsupported", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithEmail("admin@example.com").
+			WithType(orcv1alpha1.DNSZoneTypeSecondary))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("Unsupported value: \"SECONDARY\"")))
+	})
 
 	It("should reject invalid email formats", func(ctx context.Context) {
 		dnszone := dnszoneStub(namespace)
@@ -167,6 +175,42 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
 			WithEmail("admin@example.com").
 			WithType(orcv1alpha1.DNSZoneTypeSecondary))
-		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("type is immutable")))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("Unsupported value")))
+	})
+
+	It("should reject invalid TTL values", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithEmail("admin@example.com").
+			WithTTL(0))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("should be greater than or equal to 1")))
+	})
+
+	It("should permit valid TTL values", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithEmail("admin@example.com").
+			WithTTL(300))
+		Expect(applyObj(ctx, dnszone, patch)).To(Succeed())
+	})
+
+	It("should reject Name if it does not end with a period", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithEmail("admin@example.com").
+			WithName(orcv1alpha1.OpenStackName("example.com")))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("name must end with a period")))
+	})
+
+	It("should permit Name ending with a period", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithEmail("admin@example.com").
+			WithName(orcv1alpha1.OpenStackName("example.com.")))
+		Expect(applyObj(ctx, dnszone, patch)).To(Succeed())
 	})
 })
