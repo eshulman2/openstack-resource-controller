@@ -153,7 +153,11 @@ func (actuator dnsZoneActuator) CreateResource(ctx context.Context, obj orcObjec
 	osResource, err := actuator.osClient.CreateZone(ctx, createOpts)
 	if err != nil {
 		if !orcerrors.IsRetryable(err) {
-			err = orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration creating resource: "+err.Error(), err)
+			reason := orcv1alpha1.ConditionReasonInvalidConfiguration
+			if orcerrors.IsConflict(err) {
+				reason = orcv1alpha1.ConditionReasonUnrecoverableError
+			}
+			err = orcerrors.Terminal(reason, "invalid configuration creating resource: "+err.Error(), err)
 		}
 		return nil, progress.WrapError(err)
 	}

@@ -345,6 +345,12 @@ func TestCreateResource(t *testing.T) {
 		if orcerrors.IsRetryable(err) {
 			t.Errorf("Expected conflict error to be terminal (not retryable)")
 		}
+		var terminalError *orcerrors.TerminalError
+		if !errors.As(err, &terminalError) {
+			t.Errorf("Expected error to contain a *TerminalError, got %T", err)
+		} else if terminalError.Reason != string(orcv1alpha1.ConditionReasonUnrecoverableError) {
+			t.Errorf("Expected TerminalError reason %s, got %s", orcv1alpha1.ConditionReasonUnrecoverableError, terminalError.Reason)
+		}
 		mockctrl.Finish()
 	}
 

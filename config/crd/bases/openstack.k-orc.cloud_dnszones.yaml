@@ -215,7 +215,7 @@ spec:
                 x-kubernetes-validations:
                 - message: email is required for PRIMARY zones
                   rule: 'self.type == ''PRIMARY'' ? (has(self.email) && self.email
-                    != '''') : true'
+                    != "") : true'
             required:
             - cloudCredentialsRef
             type: object
