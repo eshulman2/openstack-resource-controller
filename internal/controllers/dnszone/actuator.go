@@ -57,7 +57,7 @@ func (dnszoneActuator) GetResourceID(osResource *osResourceT) string {
 }
 
 func (actuator dnszoneActuator) GetOSResourceByID(ctx context.Context, id string) (*osResourceT, progress.ReconcileStatus) {
-	resource, err := actuator.osClient.GetDNSZone(ctx, id)
+	resource, err := actuator.osClient.GetZone(ctx, id)
 	if err != nil {
 		return nil, progress.WrapError(err)
 	}
@@ -79,7 +79,7 @@ func (actuator dnszoneActuator) ListOSResourcesForAdoption(ctx context.Context, 
 		Description: ptr.Deref(resourceSpec.Description, ""),
 	}
 
-	return actuator.osClient.ListDNSZones(ctx, listOpts), true
+	return actuator.osClient.ListZones(ctx, listOpts), true
 }
 
 func (actuator dnszoneActuator) ListOSResourcesForImport(ctx context.Context, obj orcObjectPT, filter filterT) (iter.Seq2[*osResourceT, error], progress.ReconcileStatus) {
@@ -97,7 +97,7 @@ func (actuator dnszoneActuator) ListOSResourcesForImport(ctx context.Context, ob
 		listOpts.TTL = int(*filter.TTL)
 	}
 
-	return actuator.osClient.ListDNSZones(ctx, listOpts), nil
+	return actuator.osClient.ListZones(ctx, listOpts), nil
 }
 
 func (actuator dnszoneActuator) CreateResource(ctx context.Context, obj orcObjectPT) (*osResourceT, progress.ReconcileStatus) {
@@ -118,7 +118,7 @@ func (actuator dnszoneActuator) CreateResource(ctx context.Context, obj orcObjec
 		createOpts.TTL = int(*resource.TTL)
 	}
 
-	osResource, err := actuator.osClient.CreateDNSZone(ctx, createOpts)
+	osResource, err := actuator.osClient.CreateZone(ctx, createOpts)
 	if err != nil {
 		if !orcerrors.IsRetryable(err) {
 			err = orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration creating resource: "+err.Error(), err)
@@ -130,7 +130,7 @@ func (actuator dnszoneActuator) CreateResource(ctx context.Context, obj orcObjec
 }
 
 func (actuator dnszoneActuator) DeleteResource(ctx context.Context, _ orcObjectPT, resource *osResourceT) progress.ReconcileStatus {
-	return progress.WrapError(actuator.osClient.DeleteDNSZone(ctx, resource.ID))
+	return progress.WrapError(actuator.osClient.DeleteZone(ctx, resource.ID))
 }
 
 func (actuator dnszoneActuator) updateResource(ctx context.Context, obj orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
@@ -158,7 +158,7 @@ func (actuator dnszoneActuator) updateResource(ctx context.Context, obj orcObjec
 		return nil
 	}
 
-	_, err = actuator.osClient.UpdateDNSZone(ctx, osResource.ID, updateOpts)
+	_, err = actuator.osClient.UpdateZone(ctx, osResource.ID, updateOpts)
 
 	if err != nil {
 		if !orcerrors.IsRetryable(err) {
