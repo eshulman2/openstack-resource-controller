@@ -109,7 +109,7 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		dnszone := dnszoneStub(namespace)
 		patch := baseDNSZonePatch(dnszone)
 		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec())
-		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("spec.resource.email")))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("email is required for PRIMARY zones")))
 	})
 
 	It("should reject invalid type enum value", func(ctx context.Context) {
@@ -133,13 +133,21 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		Entry("PRIMARY", orcv1alpha1.DNSZoneTypePrimary),
 	)
 
-	It("should reject SECONDARY type as unsupported", func(ctx context.Context) {
+	It("should reject SECONDARY type without masters", func(ctx context.Context) {
 		dnszone := dnszoneStub(namespace)
 		patch := baseDNSZonePatch(dnszone)
 		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
-			WithEmail("admin@example.com").
 			WithType(orcv1alpha1.DNSZoneTypeSecondary))
-		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("Unsupported value: \"SECONDARY\"")))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("masters: required when type is SECONDARY")))
+	})
+
+	It("should permit SECONDARY type with masters", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithType(orcv1alpha1.DNSZoneTypeSecondary).
+			WithMasters("1.2.3.4"))
+		Expect(applyObj(ctx, dnszone, patch)).To(Succeed())
 	})
 
 	It("should reject invalid email formats", func(ctx context.Context) {
@@ -173,9 +181,9 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		Expect(applyObj(ctx, dnszone, patch)).To(Succeed())
 
 		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
-			WithEmail("admin@example.com").
-			WithType(orcv1alpha1.DNSZoneTypeSecondary))
-		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("Unsupported value")))
+			WithType(orcv1alpha1.DNSZoneTypeSecondary).
+			WithMasters("1.2.3.4"))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("type is immutable")))
 	})
 
 	It("should accept a valid DNSZone manifest", func(ctx context.Context) {

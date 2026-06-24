@@ -11,6 +11,7 @@ spec:
   managementPolicy: managed
   resource:
     description: DNSZone from "import error" test
+    email: admin@example.com
     # TODO(scaffolding): add any required field
 ---
 apiVersion: openstack.k-orc.cloud/v1alpha1
@@ -25,4 +26,5 @@ spec:
   managementPolicy: managed
   resource:
     description: DNSZone from "import error" test
+    email: admin@example.com
     # TODO(scaffolding): add any required field
