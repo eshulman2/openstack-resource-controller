@@ -5,7 +5,7 @@ metadata:
   name: dnszone-create-minimal
 status:
   resource:
-    name: dnszone-create-minimal
+    name: dnszone-create-minimal.
     # TODO(scaffolding): Add all fields the resource supports
   conditions:
   - type: Available
