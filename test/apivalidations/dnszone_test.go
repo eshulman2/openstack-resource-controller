@@ -178,6 +178,17 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("Unsupported value")))
 	})
 
+	It("should accept a valid DNSZone manifest", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithName("example.com.").
+			WithEmail("admin@example.com").
+			WithTTL(3600).
+			WithType(orcv1alpha1.DNSZoneTypePrimary))
+		Expect(applyObj(ctx, dnszone, patch)).To(Succeed())
+	})
+
 	It("should reject invalid TTL values", func(ctx context.Context) {
 		dnszone := dnszoneStub(namespace)
 		patch := baseDNSZonePatch(dnszone)
@@ -185,6 +196,29 @@ var _ = Describe("ORC DNSZone API validations", func() {
 			WithEmail("admin@example.com").
 			WithTTL(0))
 		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("should be greater than or equal to 1")))
+	})
+
+	It("should reject TTL values greater than 2147483647", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := map[string]interface{}{
+			"apiVersion": "openstack.k-orc.cloud/v1alpha1",
+			"kind":       "DNSZone",
+			"metadata": map[string]interface{}{
+				"name":      dnszone.Name,
+				"namespace": dnszone.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"cloudCredentialsRef": map[string]interface{}{
+					"secretName": "openstack-credentials",
+					"cloudName":  "openstack",
+				},
+				"resource": map[string]interface{}{
+					"email": "admin@example.com",
+					"ttl":   2147483648,
+				},
+			},
+		}
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("should be less than or equal to 2147483647")))
 	})
 
 	It("should permit valid TTL values", func(ctx context.Context) {
