@@ -131,7 +131,7 @@ func TestApplyResourceStatus(t *testing.T) {
 	writer := dnsZoneStatusWriter{}
 
 	osResource := &zones.Zone{
-		Name:        "example.com.",
+		Name:        testZoneName,
 		Email:       "admin@example.com",
 		Description: "A test DNS zone",
 		TTL:         3600,
@@ -147,7 +147,7 @@ func TestApplyResourceStatus(t *testing.T) {
 	}
 
 	res := statusApply.Resource
-	if res.Name == nil || *res.Name != "example.com." {
+	if res.Name == nil || *res.Name != testZoneName {
 		t.Errorf("expected name 'example.com.', got %v", res.Name)
 	}
 	if res.Email == nil || *res.Email != "admin@example.com" {
@@ -164,5 +164,54 @@ func TestApplyResourceStatus(t *testing.T) {
 	}
 	if res.Status == nil || *res.Status != "ACTIVE" {
 		t.Errorf("expected status 'ACTIVE', got %v", res.Status)
+	}
+}
+
+func TestApplyResourceStatus_EmptyFields(t *testing.T) {
+	writer := dnsZoneStatusWriter{}
+
+	osResource := &zones.Zone{
+		Name: testZoneName,
+	}
+
+	statusApply := orcapplyconfigv1alpha1.DNSZoneStatus()
+	writer.ApplyResourceStatus(logr.Discard(), osResource, statusApply)
+
+	if statusApply.Resource == nil {
+		t.Fatal("expected Resource in apply configuration to be non-nil")
+	}
+
+	res := statusApply.Resource
+	if res.Name == nil || *res.Name != testZoneName {
+		t.Errorf("expected name 'example.com.', got %v", res.Name)
+	}
+	if res.Email != nil {
+		t.Errorf("expected Email to be nil, got %v", res.Email)
+	}
+	if res.Description != nil {
+		t.Errorf("expected Description to be nil, got %v", res.Description)
+	}
+	if res.TTL != nil {
+		t.Errorf("expected TTL to be nil, got %v", res.TTL)
+	}
+	if res.Type != nil {
+		t.Errorf("expected Type to be nil, got %v", res.Type)
+	}
+	if res.Status != nil {
+		t.Errorf("expected Status to be nil, got %v", res.Status)
+	}
+}
+
+func TestGetApplyConfig(t *testing.T) {
+	writer := dnsZoneStatusWriter{}
+	config := writer.GetApplyConfig("test-name", "test-namespace")
+	if config == nil {
+		t.Fatal("expected GetApplyConfig to return non-nil config")
+	}
+	if config.Name == nil || *config.Name != "test-name" {
+		t.Errorf("expected Name to be 'test-name', got %v", config.Name)
+	}
+	if config.Namespace == nil || *config.Namespace != "test-namespace" {
+		t.Errorf("expected Namespace to be 'test-namespace', got %v", config.Namespace)
 	}
 }

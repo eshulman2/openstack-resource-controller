@@ -25,59 +25,27 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones"
 	orcv1alpha1 "github.com/k-orc/openstack-resource-controller/v2/api/v1alpha1"
+	"github.com/k-orc/openstack-resource-controller/v2/internal/osclients/mock"
 	orcerrors "github.com/k-orc/openstack-resource-controller/v2/internal/util/errors"
+	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
 var (
-	errNotImplemented = errors.New("not implemented")
-	errTest           = errors.New("test error")
+	errTest = errors.New("test error")
 )
 
-type mockDNSZoneClient struct {
-	zones    []zones.Zone
-	getFn    func(ctx context.Context, id string) (*zones.Zone, error)
-	createFn func(ctx context.Context, opts zones.CreateOptsBuilder) (*zones.Zone, error)
-	deleteFn func(ctx context.Context, id string) error
-	updateFn func(ctx context.Context, id string, opts zones.UpdateOptsBuilder) (*zones.Zone, error)
-}
+const testZoneName = "example.com."
 
-func (m mockDNSZoneClient) ListZones(_ context.Context, _ zones.ListOptsBuilder) iter.Seq2[*zones.Zone, error] {
+func mockListZones(zonesList []zones.Zone) iter.Seq2[*zones.Zone, error] {
 	return func(yield func(*zones.Zone, error) bool) {
-		for i := range m.zones {
-			if !yield(&m.zones[i], nil) {
+		for i := range zonesList {
+			if !yield(&zonesList[i], nil) {
 				return
 			}
 		}
 	}
-}
-
-func (m mockDNSZoneClient) CreateZone(ctx context.Context, opts zones.CreateOptsBuilder) (*zones.Zone, error) {
-	if m.createFn != nil {
-		return m.createFn(ctx, opts)
-	}
-	return nil, errNotImplemented
-}
-
-func (m mockDNSZoneClient) DeleteZone(ctx context.Context, id string) error {
-	if m.deleteFn != nil {
-		return m.deleteFn(ctx, id)
-	}
-	return errNotImplemented
-}
-
-func (m mockDNSZoneClient) GetZone(ctx context.Context, id string) (*zones.Zone, error) {
-	if m.getFn != nil {
-		return m.getFn(ctx, id)
-	}
-	return nil, errNotImplemented
-}
-
-func (m mockDNSZoneClient) UpdateZone(ctx context.Context, id string, opts zones.UpdateOptsBuilder) (*zones.Zone, error) {
-	if m.updateFn != nil {
-		return m.updateFn(ctx, id, opts)
-	}
-	return nil, errNotImplemented
 }
 
 type zoneResult struct {
@@ -95,15 +63,14 @@ func TestGetResourceID(t *testing.T) {
 
 func TestGetOSResourceByID(t *testing.T) {
 	ctx := context.Background()
-	client := mockDNSZoneClient{
-		getFn: func(ctx context.Context, id string) (*zones.Zone, error) {
-			if id == "found" {
-				return &zones.Zone{ID: "found", Name: "example.com."}, nil
-			}
-			return nil, errTest
-		},
-	}
-	actuator := dnsZoneActuator{osClient: client}
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSZoneClient(mockctrl)
+
+	mockClient.EXPECT().GetZone(ctx, "found").Return(&zones.Zone{ID: "found", Name: testZoneName}, nil)
+	mockClient.EXPECT().GetZone(ctx, "notfound").Return(nil, errTest)
+
+	actuator := dnsZoneActuator{osClient: mockClient}
 
 	// Case 1: success
 	res, status := actuator.GetOSResourceByID(ctx, "found")
@@ -135,15 +102,15 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 		{
 			name: "exact match",
 			resourceSpec: orcv1alpha1.DNSZoneResourceSpec{
-				Name:        ptr.To[orcv1alpha1.OpenStackName]("example.com."),
+				Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
 				Email:       "admin@example.com",
 				Description: ptr.To("desc"),
 				TTL:         ptr.To[int32](3600),
 				Type:        orcv1alpha1.DNSZoneTypePrimary,
 			},
 			zones: []zones.Zone{
-				{ID: "1", Name: "example.com.", Email: "admin@example.com", Description: "desc", TTL: 3600, Type: "PRIMARY"},
-				{ID: "2", Name: "example.com.", Email: "other@example.com", Description: "desc", TTL: 3600, Type: "PRIMARY"},
+				{ID: "1", Name: testZoneName, Email: "admin@example.com", Description: "desc", TTL: 3600, Type: "PRIMARY"},
+				{ID: "2", Name: testZoneName, Email: "other@example.com", Description: "desc", TTL: 3600, Type: "PRIMARY"},
 			},
 			expectCount: 1,
 			expectIDs:   []string{"1"},
@@ -151,13 +118,13 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 		{
 			name: "no spec description, matches empty description",
 			resourceSpec: orcv1alpha1.DNSZoneResourceSpec{
-				Name:  ptr.To[orcv1alpha1.OpenStackName]("example.com."),
+				Name:  ptr.To[orcv1alpha1.OpenStackName](testZoneName),
 				Email: "admin@example.com",
 				Type:  orcv1alpha1.DNSZoneTypePrimary,
 			},
 			zones: []zones.Zone{
-				{ID: "1", Name: "example.com.", Email: "admin@example.com", Description: "", Type: "PRIMARY"},
-				{ID: "2", Name: "example.com.", Email: "admin@example.com", Description: "some-desc", Type: "PRIMARY"},
+				{ID: "1", Name: testZoneName, Email: "admin@example.com", Description: "", Type: "PRIMARY"},
+				{ID: "2", Name: testZoneName, Email: "admin@example.com", Description: "some-desc", Type: "PRIMARY"},
 			},
 			expectCount: 1,
 			expectIDs:   []string{"1"},
@@ -165,10 +132,18 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			client := mockDNSZoneClient{zones: tc.zones}
-			actuator := dnsZoneActuator{osClient: client}
+			mockctrl := gomock.NewController(t)
+			defer mockctrl.Finish()
+			mockClient := mock.NewMockDNSZoneClient(mockctrl)
+
+			mockClient.EXPECT().ListZones(ctx, zones.ListOpts{Name: testZoneName}).Return(mockListZones(tc.zones))
+
+			actuator := dnsZoneActuator{osClient: mockClient}
 
 			obj := &orcv1alpha1.DNSZone{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testZoneName,
+				},
 				Spec: orcv1alpha1.DNSZoneSpec{
 					Resource: &tc.resourceSpec,
 				},
@@ -197,26 +172,37 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 	}
 }
 
+func TestListOSResourcesForAdoption_NilSpec(t *testing.T) {
+	ctx := context.Background()
+	actuator := dnsZoneActuator{}
+	_, ok := actuator.ListOSResourcesForAdoption(ctx, &orcv1alpha1.DNSZone{})
+	if ok {
+		t.Errorf("Expected ok to be false with nil spec")
+	}
+}
+
 func TestListOSResourcesForImport(t *testing.T) {
 	for _, tc := range [...]struct {
-		name        string
-		filter      orcv1alpha1.DNSZoneFilter
-		zones       []zones.Zone
-		expectCount int
-		expectIDs   []string
+		name         string
+		filter       orcv1alpha1.DNSZoneFilter
+		zones        []zones.Zone
+		expectCount  int
+		expectIDs    []string
+		expectedOpts zones.ListOpts
 	}{
 		{
 			name: "match name and email",
 			filter: orcv1alpha1.DNSZoneFilter{
-				Name:  ptr.To[orcv1alpha1.OpenStackName]("example.com."),
+				Name:  ptr.To[orcv1alpha1.OpenStackName](testZoneName),
 				Email: ptr.To("admin@example.com"),
 			},
 			zones: []zones.Zone{
-				{ID: "1", Name: "example.com.", Email: "admin@example.com"},
-				{ID: "2", Name: "example.com.", Email: "other@example.com"},
+				{ID: "1", Name: testZoneName, Email: "admin@example.com"},
+				{ID: "2", Name: testZoneName, Email: "other@example.com"},
 			},
-			expectCount: 1,
-			expectIDs:   []string{"1"},
+			expectCount:  1,
+			expectIDs:    []string{"1"},
+			expectedOpts: zones.ListOpts{Name: testZoneName},
 		},
 		{
 			name: "match TTL and Type",
@@ -225,18 +211,37 @@ func TestListOSResourcesForImport(t *testing.T) {
 				Type: ptr.To(orcv1alpha1.DNSZoneTypePrimary),
 			},
 			zones: []zones.Zone{
-				{ID: "1", Name: "example.com.", TTL: 1800, Type: "PRIMARY"},
-				{ID: "2", Name: "example.com.", TTL: 3600, Type: "PRIMARY"},
-				{ID: "3", Name: "example.com.", TTL: 1800, Type: "SECONDARY"},
+				{ID: "1", Name: testZoneName, TTL: 1800, Type: "PRIMARY"},
+				{ID: "2", Name: testZoneName, TTL: 3600, Type: "PRIMARY"},
+				{ID: "3", Name: testZoneName, TTL: 1800, Type: "SECONDARY"},
 			},
-			expectCount: 1,
-			expectIDs:   []string{"1"},
+			expectCount:  1,
+			expectIDs:    []string{"1"},
+			expectedOpts: zones.ListOpts{},
+		},
+		{
+			name: "match description",
+			filter: orcv1alpha1.DNSZoneFilter{
+				Description: ptr.To("special zone"),
+			},
+			zones: []zones.Zone{
+				{ID: "1", Name: testZoneName, Description: "special zone"},
+				{ID: "2", Name: testZoneName, Description: "other zone"},
+			},
+			expectCount:  1,
+			expectIDs:    []string{"1"},
+			expectedOpts: zones.ListOpts{},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			client := mockDNSZoneClient{zones: tc.zones}
-			actuator := dnsZoneActuator{osClient: client}
+			mockctrl := gomock.NewController(t)
+			defer mockctrl.Finish()
+			mockClient := mock.NewMockDNSZoneClient(mockctrl)
+
+			mockClient.EXPECT().ListZones(ctx, tc.expectedOpts).Return(mockListZones(tc.zones))
+
+			actuator := dnsZoneActuator{osClient: mockClient}
 
 			iter, status := actuator.ListOSResourcesForImport(ctx, &orcv1alpha1.DNSZone{}, tc.filter)
 			if status != nil {
@@ -264,25 +269,10 @@ func TestListOSResourcesForImport(t *testing.T) {
 func TestCreateResource(t *testing.T) {
 	ctx := context.Background()
 
-	// Case 1: Success
-	client := mockDNSZoneClient{
-		createFn: func(ctx context.Context, opts zones.CreateOptsBuilder) (*zones.Zone, error) {
-			createOpts := opts.(zones.CreateOpts)
-			return &zones.Zone{
-				ID:          "created-id",
-				Name:        createOpts.Name,
-				Email:       createOpts.Email,
-				Description: createOpts.Description,
-				TTL:         createOpts.TTL,
-				Type:        createOpts.Type,
-			}, nil
-		},
-	}
-	actuator := dnsZoneActuator{osClient: client}
 	obj := &orcv1alpha1.DNSZone{
 		Spec: orcv1alpha1.DNSZoneSpec{
 			Resource: &orcv1alpha1.DNSZoneResourceSpec{
-				Name:        ptr.To[orcv1alpha1.OpenStackName]("example.com."),
+				Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
 				Email:       "admin@example.com",
 				Description: ptr.To("desc"),
 				TTL:         ptr.To[int32](3600),
@@ -291,85 +281,139 @@ func TestCreateResource(t *testing.T) {
 		},
 	}
 
-	res, status := actuator.CreateResource(ctx, obj)
-	if status != nil {
-		t.Fatalf("Expected nil status, got %v", status)
+	expectedCreateOpts := zones.CreateOpts{
+		Name:        testZoneName,
+		Email:       "admin@example.com",
+		Description: "desc",
+		Type:        "PRIMARY",
+		TTL:         3600,
 	}
-	if res.ID != "created-id" || res.Name != "example.com." || res.Email != "admin@example.com" || res.Description != "desc" || res.TTL != 3600 || res.Type != "PRIMARY" {
-		t.Errorf("Created resource does not match: %v", res)
+
+	// Case 1: Success
+	{
+		mockctrl := gomock.NewController(t)
+		mockClient := mock.NewMockDNSZoneClient(mockctrl)
+		mockClient.EXPECT().CreateZone(ctx, expectedCreateOpts).Return(&zones.Zone{
+			ID:          "created-id",
+			Name:        testZoneName,
+			Email:       "admin@example.com",
+			Description: "desc",
+			TTL:         3600,
+			Type:        "PRIMARY",
+		}, nil)
+
+		actuator := dnsZoneActuator{osClient: mockClient}
+		res, status := actuator.CreateResource(ctx, obj)
+		if status != nil {
+			t.Fatalf("Expected nil status, got %v", status)
+		}
+		if res.ID != "created-id" || res.Name != testZoneName || res.Email != "admin@example.com" || res.Description != "desc" || res.TTL != 3600 || res.Type != "PRIMARY" {
+			t.Errorf("Created resource does not match: %v", res)
+		}
+		mockctrl.Finish()
 	}
 
 	// Case 2: Conflict (already exists)
-	conflictErr := gophercloud.ErrUnexpectedResponseCode{
-		URL:      "http://designate/zones",
-		Method:   "POST",
-		Expected: []int{201},
-		Actual:   409,
-		Body:     []byte(`{"message": "Zone already exists"}`),
-	}
-	clientConflict := mockDNSZoneClient{
-		createFn: func(ctx context.Context, opts zones.CreateOptsBuilder) (*zones.Zone, error) {
-			return nil, conflictErr
-		},
-	}
-	actuatorConflict := dnsZoneActuator{osClient: clientConflict}
+	{
+		conflictErr := gophercloud.ErrUnexpectedResponseCode{
+			URL:      "http://designate/zones",
+			Method:   "POST",
+			Expected: []int{201},
+			Actual:   409,
+			Body:     []byte(`{"message": "Zone already exists"}`),
+		}
 
-	_, status = actuatorConflict.CreateResource(ctx, obj)
+		mockctrl := gomock.NewController(t)
+		mockClient := mock.NewMockDNSZoneClient(mockctrl)
+		mockClient.EXPECT().CreateZone(ctx, expectedCreateOpts).Return(nil, conflictErr)
+
+		actuatorConflict := dnsZoneActuator{osClient: mockClient}
+		_, status := actuatorConflict.CreateResource(ctx, obj)
+		if status == nil {
+			t.Fatalf("Expected non-nil status on conflict")
+		}
+		needsReschedule, err := status.NeedsReschedule()
+		if !needsReschedule {
+			t.Errorf("Expected needsReschedule on error")
+		}
+		if err == nil {
+			t.Errorf("Expected error from status, got nil")
+		}
+		if !orcerrors.IsConflict(err) {
+			t.Errorf("Expected conflict error, got %v", err)
+		}
+		if orcerrors.IsRetryable(err) {
+			t.Errorf("Expected conflict error to be terminal (not retryable)")
+		}
+		mockctrl.Finish()
+	}
+
+	// Case 3: Other errors (transient API errors)
+	{
+		mockctrl := gomock.NewController(t)
+		mockClient := mock.NewMockDNSZoneClient(mockctrl)
+		mockClient.EXPECT().CreateZone(ctx, expectedCreateOpts).Return(nil, errTest)
+
+		actuatorError := dnsZoneActuator{osClient: mockClient}
+		_, status := actuatorError.CreateResource(ctx, obj)
+		if status == nil {
+			t.Fatalf("Expected non-nil status on generic API error")
+		}
+		needsReschedule, err := status.NeedsReschedule()
+		if !needsReschedule {
+			t.Errorf("Expected needsReschedule to be true")
+		}
+		if err == nil {
+			t.Errorf("Expected error from status, got nil")
+		}
+		if !errors.Is(err, errTest) {
+			t.Errorf("Expected error %v, got %v", errTest, err)
+		}
+		mockctrl.Finish()
+	}
+}
+
+func TestCreateResource_NilSpec(t *testing.T) {
+	ctx := context.Background()
+	actuator := dnsZoneActuator{}
+	_, status := actuator.CreateResource(ctx, &orcv1alpha1.DNSZone{})
 	if status == nil {
-		t.Fatalf("Expected non-nil status on conflict")
+		t.Fatalf("Expected status to be non-nil when resource is nil")
 	}
-	needsReschedule, err := status.NeedsReschedule()
-	if !needsReschedule {
-		t.Errorf("Expected needsReschedule on error")
-	}
+	err := status.GetError()
 	if err == nil {
-		t.Errorf("Expected error from status, got nil")
+		t.Fatalf("Expected error when resource is nil")
 	}
-	if !orcerrors.IsConflict(err) {
-		t.Errorf("Expected conflict error, got %v", err)
-	}
-	if orcerrors.IsRetryable(err) {
-		t.Errorf("Expected conflict error to be terminal (not retryable)")
+	var terminalError *orcerrors.TerminalError
+	if !errors.As(err, &terminalError) {
+		t.Errorf("Expected error to be a terminal error, got %T", err)
 	}
 }
 
 func TestDeleteResource(t *testing.T) {
 	ctx := context.Background()
-	var deletedID string
-	client := mockDNSZoneClient{
-		deleteFn: func(ctx context.Context, id string) error {
-			deletedID = id
-			return nil
-		},
-	}
-	actuator := dnsZoneActuator{osClient: client}
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSZoneClient(mockctrl)
+
+	mockClient.EXPECT().DeleteZone(ctx, "delete-me").Return(nil)
+
+	actuator := dnsZoneActuator{osClient: mockClient}
 	zone := &zones.Zone{ID: "delete-me"}
 
 	status := actuator.DeleteResource(ctx, &orcv1alpha1.DNSZone{}, zone)
 	if status != nil {
 		t.Errorf("Expected nil status, got %v", status)
 	}
-	if deletedID != "delete-me" {
-		t.Errorf("Expected delete-me to be deleted, got %s", deletedID)
-	}
 }
 
 func TestUpdateResource(t *testing.T) {
 	ctx := context.Background()
 
-	var updatedOpts zones.UpdateOpts
-	client := mockDNSZoneClient{
-		updateFn: func(ctx context.Context, id string, opts zones.UpdateOptsBuilder) (*zones.Zone, error) {
-			updatedOpts = opts.(zones.UpdateOpts)
-			return &zones.Zone{ID: id}, nil
-		},
-	}
-	actuator := dnsZoneActuator{osClient: client}
-
 	obj := &orcv1alpha1.DNSZone{
 		Spec: orcv1alpha1.DNSZoneSpec{
 			Resource: &orcv1alpha1.DNSZoneResourceSpec{
-				Name:        ptr.To[orcv1alpha1.OpenStackName]("example.com."),
+				Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
 				Email:       "new-admin@example.com",
 				Description: ptr.To("new-desc"),
 				TTL:         ptr.To[int32](7200),
@@ -379,26 +423,101 @@ func TestUpdateResource(t *testing.T) {
 	}
 	osResource := &zones.Zone{
 		ID:          "zone-id",
-		Name:        "example.com.",
+		Name:        testZoneName,
 		Email:       "admin@example.com",
 		Description: "desc",
 		TTL:         3600,
 		Type:        "PRIMARY",
 	}
 
-	status := actuator.updateResource(ctx, obj, osResource)
-	if status == nil {
-		t.Fatalf("Expected progress status, got nil")
+	expectedUpdateOpts := zones.UpdateOpts{
+		Email:       "new-admin@example.com",
+		Description: ptr.To("new-desc"),
+		TTL:         7200,
 	}
 
-	if updatedOpts.Email != "new-admin@example.com" {
-		t.Errorf("Expected email new-admin@example.com, got %s", updatedOpts.Email)
+	// Case 1: Progress (change requires update)
+	{
+		mockctrl := gomock.NewController(t)
+		mockClient := mock.NewMockDNSZoneClient(mockctrl)
+		mockClient.EXPECT().UpdateZone(ctx, "zone-id", expectedUpdateOpts).Return(&zones.Zone{ID: "zone-id"}, nil)
+
+		actuator := dnsZoneActuator{osClient: mockClient}
+		status := actuator.updateResource(ctx, obj, osResource)
+		if status == nil {
+			t.Fatalf("Expected progress status, got nil")
+		}
+		needsReschedule, err := status.NeedsReschedule()
+		if !needsReschedule {
+			t.Errorf("Expected needsReschedule to be true")
+		}
+		if err != nil {
+			t.Errorf("Expected nil error, got %v", err)
+		}
+		mockctrl.Finish()
 	}
-	if ptr.Deref(updatedOpts.Description, "") != "new-desc" {
-		t.Errorf("Expected description new-desc, got %s", ptr.Deref(updatedOpts.Description, ""))
+
+	// Case 2: No change (no update call should be made)
+	{
+		mockctrl := gomock.NewController(t)
+		mockClient := mock.NewMockDNSZoneClient(mockctrl)
+		// Expect no call to UpdateZone
+
+		actuator := dnsZoneActuator{osClient: mockClient}
+		unchangedObj := &orcv1alpha1.DNSZone{
+			Spec: orcv1alpha1.DNSZoneSpec{
+				Resource: &orcv1alpha1.DNSZoneResourceSpec{
+					Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
+					Email:       "admin@example.com",
+					Description: ptr.To("desc"),
+					TTL:         ptr.To[int32](3600),
+					Type:        orcv1alpha1.DNSZoneTypePrimary,
+				},
+			},
+		}
+		status := actuator.updateResource(ctx, unchangedObj, osResource)
+		if status != nil {
+			t.Errorf("Expected nil status when no update needed, got %v", status)
+		}
+		mockctrl.Finish()
 	}
-	if updatedOpts.TTL != 7200 {
-		t.Errorf("Expected TTL 7200, got %d", updatedOpts.TTL)
+
+	// Case 3: Error during update (transient error)
+	{
+		mockctrl := gomock.NewController(t)
+		mockClient := mock.NewMockDNSZoneClient(mockctrl)
+		mockClient.EXPECT().UpdateZone(ctx, "zone-id", expectedUpdateOpts).Return(nil, errTest)
+
+		actuator := dnsZoneActuator{osClient: mockClient}
+		status := actuator.updateResource(ctx, obj, osResource)
+		if status == nil {
+			t.Fatalf("Expected progress status on error, got nil")
+		}
+		needsReschedule, err := status.NeedsReschedule()
+		if !needsReschedule {
+			t.Errorf("Expected needsReschedule to be true")
+		}
+		if !errors.Is(err, errTest) {
+			t.Errorf("Expected error %v, got %v", errTest, err)
+		}
+		mockctrl.Finish()
+	}
+}
+
+func TestUpdateResource_NilSpec(t *testing.T) {
+	ctx := context.Background()
+	actuator := dnsZoneActuator{}
+	status := actuator.updateResource(ctx, &orcv1alpha1.DNSZone{}, &zones.Zone{})
+	if status == nil {
+		t.Fatalf("Expected status to be non-nil when resource is nil")
+	}
+	err := status.GetError()
+	if err == nil {
+		t.Fatalf("Expected error when resource is nil")
+	}
+	var terminalError *orcerrors.TerminalError
+	if !errors.As(err, &terminalError) {
+		t.Errorf("Expected error to be a terminal error, got %T", err)
 	}
 }
 
@@ -458,5 +577,131 @@ func TestHandleDescriptionUpdate(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestHandleEmailUpdate(t *testing.T) {
+	testCases := []struct {
+		name          string
+		newValue      string
+		existingValue string
+		expectChange  bool
+	}{
+		{name: "Identical", newValue: "admin@example.com", existingValue: "admin@example.com", expectChange: false},
+		{name: "Different", newValue: "new-admin@example.com", existingValue: "admin@example.com", expectChange: true},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			resource := &orcv1alpha1.DNSZoneResourceSpec{Email: tt.newValue}
+			osResource := &osResourceT{Email: tt.existingValue}
+
+			updateOpts := zones.UpdateOpts{}
+			handleEmailUpdate(&updateOpts, resource, osResource)
+
+			got, _ := needsUpdate(updateOpts)
+			if got != tt.expectChange {
+				t.Errorf("Expected change: %v, got: %v", tt.expectChange, got)
+			}
+		})
+	}
+}
+
+func TestHandleTTLUpdate(t *testing.T) {
+	testCases := []struct {
+		name          string
+		newValue      *int32
+		existingValue int
+		expectChange  bool
+	}{
+		{name: "Identical", newValue: ptr.To[int32](3600), existingValue: 3600, expectChange: false},
+		{name: "Different", newValue: ptr.To[int32](1800), existingValue: 3600, expectChange: true},
+		{name: "Nil value", newValue: nil, existingValue: 3600, expectChange: false},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			resource := &orcv1alpha1.DNSZoneResourceSpec{TTL: tt.newValue}
+			osResource := &osResourceT{TTL: tt.existingValue}
+
+			updateOpts := zones.UpdateOpts{}
+			handleTTLUpdate(&updateOpts, resource, osResource)
+
+			got, _ := needsUpdate(updateOpts)
+			if got != tt.expectChange {
+				t.Errorf("Expected change: %v, got: %v", tt.expectChange, got)
+			}
+		})
+	}
+}
+
+func TestGetResourceReconcilers(t *testing.T) {
+	actuator := dnsZoneActuator{}
+	reconcilers, status := actuator.GetResourceReconcilers(context.Background(), &orcv1alpha1.DNSZone{}, &zones.Zone{}, nil)
+	if status != nil {
+		t.Errorf("Expected nil status, got %v", status)
+	}
+	if len(reconcilers) != 1 {
+		t.Errorf("Expected 1 reconciler, got %d", len(reconcilers))
+	}
+}
+
+func TestHelperFactory_NewAPIObjectAdapter(t *testing.T) {
+	factory := dnszoneHelperFactory{}
+	obj := &orcv1alpha1.DNSZone{
+		Spec: orcv1alpha1.DNSZoneSpec{
+			ManagementPolicy: orcv1alpha1.ManagementPolicyManaged,
+			ManagedOptions: &orcv1alpha1.ManagedOptions{
+				OnDelete: orcv1alpha1.OnDeleteDelete,
+			},
+			Resource: &orcv1alpha1.DNSZoneResourceSpec{
+				Name: ptr.To[orcv1alpha1.OpenStackName](testZoneName),
+			},
+			Import: &orcv1alpha1.DNSZoneImport{
+				ID: ptr.To("imported-id"),
+				Filter: &orcv1alpha1.DNSZoneFilter{
+					Name: ptr.To[orcv1alpha1.OpenStackName](testZoneName),
+				},
+			},
+		},
+		Status: orcv1alpha1.DNSZoneStatus{
+			ID: ptr.To("status-id"),
+		},
+	}
+	adapter := factory.NewAPIObjectAdapter(obj)
+	if adapter.GetObject() != obj {
+		t.Errorf("Expected GetObject to return the original object")
+	}
+	if adapter.GetManagementPolicy() != orcv1alpha1.ManagementPolicyManaged {
+		t.Errorf("Expected GetManagementPolicy to match")
+	}
+	if adapter.GetManagedOptions().OnDelete != orcv1alpha1.OnDeleteDelete {
+		t.Errorf("Expected GetManagedOptions to match")
+	}
+	if *adapter.GetStatusID() != "status-id" {
+		t.Errorf("Expected GetStatusID to return 'status-id'")
+	}
+	if adapter.GetResourceSpec().Name == nil || string(*adapter.GetResourceSpec().Name) != testZoneName {
+		t.Errorf("Expected GetResourceSpec Name to match")
+	}
+	if *adapter.GetImportID() != "imported-id" {
+		t.Errorf("Expected GetImportID to return 'imported-id'")
+	}
+	if adapter.GetImportFilter().Name == nil || string(*adapter.GetImportFilter().Name) != testZoneName {
+		t.Errorf("Expected GetImportFilter Name to match")
+	}
+}
+
+func TestHelperFactory_NewAPIObjectAdapter_NilImport(t *testing.T) {
+	factory := dnszoneHelperFactory{}
+	obj := &orcv1alpha1.DNSZone{
+		Spec: orcv1alpha1.DNSZoneSpec{},
+	}
+	adapter := factory.NewAPIObjectAdapter(obj)
+	if adapter.GetImportID() != nil {
+		t.Errorf("Expected GetImportID to be nil")
+	}
+	if adapter.GetImportFilter() != nil {
+		t.Errorf("Expected GetImportFilter to be nil")
 	}
 }
