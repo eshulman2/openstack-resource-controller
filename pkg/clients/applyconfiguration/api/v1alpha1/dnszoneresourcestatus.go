@@ -18,15 +18,21 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // DNSZoneResourceStatusApplyConfiguration represents a declarative configuration of the DNSZoneResourceStatus type for use
 // with apply.
 type DNSZoneResourceStatusApplyConfiguration struct {
-	Name        *string `json:"name,omitempty"`
-	Email       *string `json:"email,omitempty"`
-	Description *string `json:"description,omitempty"`
-	TTL         *int32  `json:"ttl,omitempty"`
-	Type        *string `json:"type,omitempty"`
-	Status      *string `json:"status,omitempty"`
+	Name          *string  `json:"name,omitempty"`
+	Email         *string  `json:"email,omitempty"`
+	Description   *string  `json:"description,omitempty"`
+	TTL           *int32   `json:"ttl,omitempty"`
+	Type          *string  `json:"type,omitempty"`
+	Masters       []string `json:"masters,omitempty"`
+	TransferredAt *v1.Time `json:"transferredAt,omitempty"`
+	Status        *string  `json:"status,omitempty"`
 }
 
 // DNSZoneResourceStatusApplyConfiguration constructs a declarative configuration of the DNSZoneResourceStatus type for use with
@@ -72,6 +78,24 @@ func (b *DNSZoneResourceStatusApplyConfiguration) WithTTL(value int32) *DNSZoneR
 // If called multiple times, the Type field is set to the value of the last call.
 func (b *DNSZoneResourceStatusApplyConfiguration) WithType(value string) *DNSZoneResourceStatusApplyConfiguration {
 	b.Type = &value
+	return b
+}
+
+// WithMasters adds the given value to the Masters field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Masters field.
+func (b *DNSZoneResourceStatusApplyConfiguration) WithMasters(values ...string) *DNSZoneResourceStatusApplyConfiguration {
+	for i := range values {
+		b.Masters = append(b.Masters, values[i])
+	}
+	return b
+}
+
+// WithTransferredAt sets the TransferredAt field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TransferredAt field is set to the value of the last call.
+func (b *DNSZoneResourceStatusApplyConfiguration) WithTransferredAt(value v1.Time) *DNSZoneResourceStatusApplyConfiguration {
+	b.TransferredAt = &value
 	return b
 }
 

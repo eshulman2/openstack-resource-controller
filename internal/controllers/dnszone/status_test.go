@@ -130,13 +130,16 @@ func TestResourceAvailableStatus(t *testing.T) {
 func TestApplyResourceStatus(t *testing.T) {
 	writer := dnsZoneStatusWriter{}
 
+	now := time.Now().UTC()
 	osResource := &zones.Zone{
-		Name:        testZoneName,
-		Email:       "admin@example.com",
-		Description: "A test DNS zone",
-		TTL:         3600,
-		Type:        "PRIMARY",
-		Status:      "ACTIVE",
+		Name:          testZoneName,
+		Email:         "admin@example.com",
+		Description:   "A test DNS zone",
+		TTL:           3600,
+		Type:          "SECONDARY",
+		Status:        "ACTIVE",
+		Masters:       []string{"192.0.2.1", "192.0.2.2"},
+		TransferredAt: now,
 	}
 
 	statusApply := orcapplyconfigv1alpha1.DNSZoneStatus()
@@ -159,8 +162,14 @@ func TestApplyResourceStatus(t *testing.T) {
 	if res.TTL == nil || *res.TTL != 3600 {
 		t.Errorf("expected TTL 3600, got %v", res.TTL)
 	}
-	if res.Type == nil || *res.Type != "PRIMARY" {
-		t.Errorf("expected type 'PRIMARY', got %v", res.Type)
+	if res.Type == nil || *res.Type != "SECONDARY" {
+		t.Errorf("expected type 'SECONDARY', got %v", res.Type)
+	}
+	if len(res.Masters) != 2 || res.Masters[0] != "192.0.2.1" || res.Masters[1] != "192.0.2.2" {
+		t.Errorf("expected masters ['192.0.2.1', '192.0.2.2'], got %v", res.Masters)
+	}
+	if res.TransferredAt == nil || !res.TransferredAt.Time.Equal(now) {
+		t.Errorf("expected transferredAt %v, got %v", now, res.TransferredAt)
 	}
 	if res.Status == nil || *res.Status != "ACTIVE" {
 		t.Errorf("expected status 'ACTIVE', got %v", res.Status)

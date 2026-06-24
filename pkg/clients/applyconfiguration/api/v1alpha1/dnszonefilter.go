@@ -30,6 +30,7 @@ type DNSZoneFilterApplyConfiguration struct {
 	Description *string                    `json:"description,omitempty"`
 	TTL         *int32                     `json:"ttl,omitempty"`
 	Type        *apiv1alpha1.DNSZoneType   `json:"type,omitempty"`
+	Masters     []string                   `json:"masters,omitempty"`
 }
 
 // DNSZoneFilterApplyConfiguration constructs a declarative configuration of the DNSZoneFilter type for use with
@@ -75,5 +76,15 @@ func (b *DNSZoneFilterApplyConfiguration) WithTTL(value int32) *DNSZoneFilterApp
 // If called multiple times, the Type field is set to the value of the last call.
 func (b *DNSZoneFilterApplyConfiguration) WithType(value apiv1alpha1.DNSZoneType) *DNSZoneFilterApplyConfiguration {
 	b.Type = &value
+	return b
+}
+
+// WithMasters adds the given value to the Masters field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Masters field.
+func (b *DNSZoneFilterApplyConfiguration) WithMasters(values ...string) *DNSZoneFilterApplyConfiguration {
+	for i := range values {
+		b.Masters = append(b.Masters, values[i])
+	}
 	return b
 }

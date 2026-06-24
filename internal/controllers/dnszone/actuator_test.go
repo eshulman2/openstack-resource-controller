@@ -103,7 +103,7 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 			name: "exact match",
 			resourceSpec: orcv1alpha1.DNSZoneResourceSpec{
 				Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
-				Email:       "admin@example.com",
+				Email:       ptr.To("admin@example.com"),
 				Description: ptr.To("desc"),
 				TTL:         ptr.To[int32](3600),
 				Type:        orcv1alpha1.DNSZoneTypePrimary,
@@ -119,7 +119,7 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 			name: "no spec description, matches empty description",
 			resourceSpec: orcv1alpha1.DNSZoneResourceSpec{
 				Name:  ptr.To[orcv1alpha1.OpenStackName](testZoneName),
-				Email: "admin@example.com",
+				Email: ptr.To("admin@example.com"),
 				Type:  orcv1alpha1.DNSZoneTypePrimary,
 			},
 			zones: []zones.Zone{
@@ -273,7 +273,7 @@ func TestCreateResource(t *testing.T) {
 		Spec: orcv1alpha1.DNSZoneSpec{
 			Resource: &orcv1alpha1.DNSZoneResourceSpec{
 				Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
-				Email:       "admin@example.com",
+				Email:       ptr.To("admin@example.com"),
 				Description: ptr.To("desc"),
 				TTL:         ptr.To[int32](3600),
 				Type:        orcv1alpha1.DNSZoneTypePrimary,
@@ -420,7 +420,7 @@ func TestUpdateResource(t *testing.T) {
 		Spec: orcv1alpha1.DNSZoneSpec{
 			Resource: &orcv1alpha1.DNSZoneResourceSpec{
 				Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
-				Email:       "new-admin@example.com",
+				Email:       ptr.To("new-admin@example.com"),
 				Description: ptr.To("new-desc"),
 				TTL:         ptr.To[int32](7200),
 				Type:        orcv1alpha1.DNSZoneTypePrimary,
@@ -474,7 +474,7 @@ func TestUpdateResource(t *testing.T) {
 			Spec: orcv1alpha1.DNSZoneSpec{
 				Resource: &orcv1alpha1.DNSZoneResourceSpec{
 					Name:        ptr.To[orcv1alpha1.OpenStackName](testZoneName),
-					Email:       "admin@example.com",
+					Email:       ptr.To("admin@example.com"),
 					Description: ptr.To("desc"),
 					TTL:         ptr.To[int32](3600),
 					Type:        orcv1alpha1.DNSZoneTypePrimary,
@@ -599,7 +599,7 @@ func TestHandleEmailUpdate(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			resource := &orcv1alpha1.DNSZoneResourceSpec{Email: tt.newValue}
+			resource := &orcv1alpha1.DNSZoneResourceSpec{Email: ptr.To(tt.newValue)}
 			osResource := &osResourceT{Email: tt.existingValue}
 
 			updateOpts := zones.UpdateOpts{}

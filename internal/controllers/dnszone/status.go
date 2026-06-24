@@ -92,6 +92,14 @@ func (dnsZoneStatusWriter) ApplyResourceStatus(log logr.Logger, osResource *osRe
 		resourceStatus.WithType(osResource.Type)
 	}
 
+	if len(osResource.Masters) > 0 {
+		resourceStatus.WithMasters(osResource.Masters...)
+	}
+
+	if !osResource.TransferredAt.IsZero() {
+		resourceStatus.WithTransferredAt(metav1.NewTime(osResource.TransferredAt))
+	}
+
 	if osResource.Status != "" {
 		resourceStatus.WithStatus(osResource.Status)
 	}

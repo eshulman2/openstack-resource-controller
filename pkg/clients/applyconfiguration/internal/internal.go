@@ -415,6 +415,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: email
       type:
         scalar: string
+    - name: masters
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
     - name: name
       type:
         scalar: string
@@ -442,7 +448,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: email
       type:
         scalar: string
-      default: ""
+    - name: masters
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
     - name: name
       type:
         scalar: string
@@ -461,12 +472,21 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: email
       type:
         scalar: string
+    - name: masters
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
     - name: name
       type:
         scalar: string
     - name: status
       type:
         scalar: string
+    - name: transferredAt
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
     - name: ttl
       type:
         scalar: numeric

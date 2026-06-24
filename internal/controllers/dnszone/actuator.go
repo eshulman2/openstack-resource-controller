@@ -81,9 +81,15 @@ func (actuator dnsZoneActuator) ListOSResourcesForAdoption(ctx context.Context, 
 			return f.Description == ""
 		})
 	}
-	filters = append(filters, func(f *zones.Zone) bool {
-		return f.Email == resourceSpec.Email
-	})
+	if resourceSpec.Email != nil {
+		filters = append(filters, func(f *zones.Zone) bool {
+			return f.Email == *resourceSpec.Email
+		})
+	} else {
+		filters = append(filters, func(f *zones.Zone) bool {
+			return f.Email == ""
+		})
+	}
 	if resourceSpec.TTL != nil {
 		filters = append(filters, func(f *zones.Zone) bool {
 			return f.TTL == int(*resourceSpec.TTL)
@@ -92,6 +98,23 @@ func (actuator dnsZoneActuator) ListOSResourcesForAdoption(ctx context.Context, 
 	filters = append(filters, func(f *zones.Zone) bool {
 		return f.Type == string(resourceSpec.Type)
 	})
+	if len(resourceSpec.Masters) > 0 {
+		filters = append(filters, func(f *zones.Zone) bool {
+			if len(f.Masters) != len(resourceSpec.Masters) {
+				return false
+			}
+			for i, m := range f.Masters {
+				if m != resourceSpec.Masters[i] {
+					return false
+				}
+			}
+			return true
+		})
+	} else {
+		filters = append(filters, func(f *zones.Zone) bool {
+			return len(f.Masters) == 0
+		})
+	}
 
 	listOpts := zones.ListOpts{
 		Name: getResourceName(orcObject),
@@ -118,6 +141,19 @@ func (actuator dnsZoneActuator) ListOSResourcesForImport(ctx context.Context, ob
 	if filter.Type != nil {
 		filters = append(filters, func(f *zones.Zone) bool { return f.Type == string(*filter.Type) })
 	}
+	if len(filter.Masters) > 0 {
+		filters = append(filters, func(f *zones.Zone) bool {
+			if len(f.Masters) != len(filter.Masters) {
+				return false
+			}
+			for i, m := range f.Masters {
+				if m != filter.Masters[i] {
+					return false
+				}
+			}
+			return true
+		})
+	}
 
 	listOpts := zones.ListOpts{}
 	if filter.Name != nil {
@@ -142,9 +178,10 @@ func (actuator dnsZoneActuator) CreateResource(ctx context.Context, obj orcObjec
 	}
 	createOpts := zones.CreateOpts{
 		Name:        getResourceName(obj),
-		Email:       resource.Email,
+		Email:       ptr.Deref(resource.Email, ""),
 		Description: ptr.Deref(resource.Description, ""),
 		Type:        string(resource.Type),
+		Masters:     resource.Masters,
 	}
 	if resource.TTL != nil {
 		createOpts.TTL = int(*resource.TTL)
@@ -183,6 +220,7 @@ func (actuator dnsZoneActuator) updateResource(ctx context.Context, obj orcObjec
 	handleDescriptionUpdate(&updateOpts, resource, osResource)
 	handleEmailUpdate(&updateOpts, resource, osResource)
 	handleTTLUpdate(&updateOpts, resource, osResource)
+	handleMastersUpdate(&updateOpts, resource, osResource)
 
 	needsUpdate, err := needsUpdate(updateOpts)
 	if err != nil {
@@ -223,8 +261,26 @@ func handleDescriptionUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpe
 }
 
 func handleEmailUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpecT, osResource *osResourceT) {
-	if osResource.Email != resource.Email {
-		updateOpts.Email = resource.Email
+	email := ptr.Deref(resource.Email, "")
+	if osResource.Email != email {
+		updateOpts.Email = email
+	}
+}
+
+func handleMastersUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpecT, osResource *osResourceT) {
+	mastersMatch := true
+	if len(osResource.Masters) != len(resource.Masters) {
+		mastersMatch = false
+	} else {
+		for i, m := range osResource.Masters {
+			if m != resource.Masters[i] {
+				mastersMatch = false
+				break
+			}
+		}
+	}
+	if !mastersMatch {
+		updateOpts.Masters = resource.Masters
 	}
 }
 

@@ -101,6 +101,14 @@ spec:
                         format: email
                         maxLength: 255
                         type: string
+                      masters:
+                        description: masters of the existing resource
+                        items:
+                          maxLength: 255
+                          type: string
+                        maxItems: 32
+                        type: array
+                        x-kubernetes-list-type: atomic
                       name:
                         description: name of the existing resource
                         maxLength: 255
@@ -120,6 +128,7 @@ spec:
                         description: type of the existing resource
                         enum:
                         - PRIMARY
+                        - SECONDARY
                         type: string
                     type: object
                   id:
@@ -181,6 +190,15 @@ spec:
                     format: email
                     maxLength: 255
                     type: string
+                  masters:
+                    description: masters specifies zone masters if this is a secondary
+                      zone.
+                    items:
+                      maxLength: 255
+                      type: string
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-type: atomic
                   name:
                     description: |-
                       name will be the name of the created resource. If not specified, the
@@ -192,7 +210,7 @@ spec:
                     x-kubernetes-validations:
                     - message: name is immutable
                       rule: self == oldSelf
-                    - message: name must end with a period
+                    - message: zone name must end with a period
                       rule: self.endsWith('.')
                   ttl:
                     description: ttl is the Time To Live for the zone in seconds.
@@ -205,17 +223,21 @@ spec:
                     description: type is the type of the zone.
                     enum:
                     - PRIMARY
+                    - SECONDARY
                     type: string
                     x-kubernetes-validations:
                     - message: type is immutable
                       rule: self == oldSelf
-                required:
-                - email
                 type: object
                 x-kubernetes-validations:
                 - message: email is required for PRIMARY zones
                   rule: 'self.type == ''PRIMARY'' ? (has(self.email) && self.email
                     != "") : true'
+                - message: 'masters: required when type is SECONDARY'
+                  rule: 'self.type == ''SECONDARY'' ? (has(self.masters) && self.masters.size()
+                    > 0) : true'
+                - message: 'masters: must not be specified when type is PRIMARY'
+                  rule: 'self.type == ''PRIMARY'' ? !has(self.masters) : true'
             required:
             - cloudCredentialsRef
             type: object
@@ -328,6 +350,15 @@ spec:
                     description: email is the email contact of the zone.
                     maxLength: 1024
                     type: string
+                  masters:
+                    description: masters specifies zone masters if this is a secondary
+                      zone.
+                    items:
+                      maxLength: 255
+                      type: string
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-type: atomic
                   name:
                     description: name is a Human-readable name for the resource. Might
                       not be unique.
@@ -336,6 +367,11 @@ spec:
                   status:
                     description: status is the status of the resource.
                     maxLength: 255
+                    type: string
+                  transferredAt:
+                    description: transferredAt is the last time an update was retrieved
+                      from the master servers.
+                    format: date-time
                     type: string
                   ttl:
                     description: ttl is the Time to Live for the zone in seconds.

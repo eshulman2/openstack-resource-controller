@@ -590,7 +590,8 @@ _Appears in:_
 | `email` _string_ | email of the existing resource |  | Format: email <br />MaxLength: 255 <br />Optional: \{\} <br /> |
 | `description` _string_ | description of the existing resource |  | MaxLength: 255 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `ttl` _integer_ | ttl of the existing resource |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
-| `type` _[DNSZoneType](#dnszonetype)_ | type of the existing resource |  | Enum: [PRIMARY] <br />Optional: \{\} <br /> |
+| `type` _[DNSZoneType](#dnszonetype)_ | type of the existing resource |  | Enum: [PRIMARY SECONDARY] <br />Optional: \{\} <br /> |
+| `masters` _string array_ | masters of the existing resource |  | MaxItems: 32 <br />items:MaxLength: 255 <br />Optional: \{\} <br /> |
 
 
 #### DNSZoneImport
@@ -627,10 +628,11 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `name` _[OpenStackName](#openstackname)_ | name will be the name of the created resource. If not specified, the<br />name of the ORC object will be used. |  | MaxLength: 255 <br />MinLength: 1 <br />Pattern: `^[^,]+$` <br />Optional: \{\} <br /> |
-| `email` _string_ | email is the email address of the administrator for the zone. |  | Format: email <br />MaxLength: 255 <br />Required: \{\} <br /> |
+| `email` _string_ | email is the email address of the administrator for the zone. |  | Format: email <br />MaxLength: 255 <br />Optional: \{\} <br /> |
 | `description` _string_ | description is a human-readable description for the resource. |  | MaxLength: 255 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `ttl` _integer_ | ttl is the Time To Live for the zone in seconds. |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
-| `type` _[DNSZoneType](#dnszonetype)_ | type is the type of the zone. | PRIMARY | Enum: [PRIMARY] <br />Optional: \{\} <br /> |
+| `type` _[DNSZoneType](#dnszonetype)_ | type is the type of the zone. | PRIMARY | Enum: [PRIMARY SECONDARY] <br />Optional: \{\} <br /> |
+| `masters` _string array_ | masters specifies zone masters if this is a secondary zone. |  | MaxItems: 32 <br />items:MaxLength: 255 <br />Optional: \{\} <br /> |
 
 
 #### DNSZoneResourceStatus
@@ -651,6 +653,8 @@ _Appears in:_
 | `description` _string_ | description is a human-readable description for the resource. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |
 | `ttl` _integer_ | ttl is the Time to Live for the zone in seconds. |  | Optional: \{\} <br /> |
 | `type` _string_ | type is the type of the zone. |  | MaxLength: 255 <br />Optional: \{\} <br /> |
+| `masters` _string array_ | masters specifies zone masters if this is a secondary zone. |  | MaxItems: 32 <br />items:MaxLength: 255 <br />Optional: \{\} <br /> |
+| `transferredAt` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | transferredAt is the last time an update was retrieved from the master servers. |  | Optional: \{\} <br /> |
 | `status` _string_ | status is the status of the resource. |  | MaxLength: 255 <br />Optional: \{\} <br /> |
 
 
@@ -699,7 +703,7 @@ _Underlying type:_ _string_
 
 
 _Validation:_
-- Enum: [PRIMARY]
+- Enum: [PRIMARY SECONDARY]
 
 _Appears in:_
 - [DNSZoneFilter](#dnszonefilter)
