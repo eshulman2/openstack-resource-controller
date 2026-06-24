@@ -75,6 +75,9 @@ type templateFields struct {
 
 var resources []templateFields = []templateFields{
 	{
+		Name: "DNSZone",
+	},
+	{
 		Name: "Domain",
 	},
 	{
