@@ -117,7 +117,7 @@ func (actuator dnsZoneActuator) ListOSResourcesForAdoption(ctx context.Context, 
 	}
 
 	listOpts := zones.ListOpts{
-		Name: getResourceName(orcObject),
+		Name: getDNSZoneName(orcObject),
 	}
 
 	return actuator.listOSResources(ctx, filters, listOpts), true
@@ -177,7 +177,7 @@ func (actuator dnsZoneActuator) CreateResource(ctx context.Context, obj orcObjec
 			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "Creation requested, but spec.resource is not set"))
 	}
 	createOpts := zones.CreateOpts{
-		Name:        getResourceName(obj),
+		Name:        getDNSZoneName(obj),
 		Email:       ptr.Deref(resource.Email, ""),
 		Description: ptr.Deref(resource.Description, ""),
 		Type:        string(resource.Type),
@@ -337,4 +337,12 @@ func (dnszoneHelperFactory) NewCreateActuator(ctx context.Context, orcObject orc
 
 func (dnszoneHelperFactory) NewDeleteActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController) (deleteResourceActuator, progress.ReconcileStatus) {
 	return newActuator(ctx, orcObject, controller)
+}
+
+func getDNSZoneName(orcObject orcObjectPT) string {
+	name := getResourceName(orcObject)
+	if name != "" && name[len(name)-1] != '.' {
+		return name + "."
+	}
+	return name
 }

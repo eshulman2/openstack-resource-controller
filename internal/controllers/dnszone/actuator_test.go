@@ -711,3 +711,56 @@ func TestHelperFactory_NewAPIObjectAdapter_NilImport(t *testing.T) {
 		t.Errorf("Expected GetImportFilter to be nil")
 	}
 }
+
+func TestGetDNSZoneName(t *testing.T) {
+	testCases := []struct {
+		name         string
+		specName     *string
+		objName      string
+		expectedName string
+	}{
+		{
+			name:         "spec name ends with dot",
+			specName:     ptr.To("example.com."),
+			objName:      "my-dnszone",
+			expectedName: "example.com.",
+		},
+		{
+			name:         "spec name has no dot",
+			specName:     ptr.To("example.com"),
+			objName:      "my-dnszone",
+			expectedName: "example.com.",
+		},
+		{
+			name:         "fallback to obj name with dot",
+			specName:     nil,
+			objName:      "example.org.",
+			expectedName: "example.org.",
+		},
+		{
+			name:         "fallback to obj name without dot",
+			specName:     nil,
+			objName:      "example.org",
+			expectedName: "example.org.",
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &orcv1alpha1.DNSZone{}
+			obj.Name = tt.objName
+			if tt.specName != nil {
+				obj.Spec.Resource = &orcv1alpha1.DNSZoneResourceSpec{
+					Name: ptr.To[orcv1alpha1.OpenStackName](orcv1alpha1.OpenStackName(*tt.specName)),
+				}
+			} else {
+				obj.Spec.Resource = &orcv1alpha1.DNSZoneResourceSpec{}
+			}
+
+			got := getDNSZoneName(obj)
+			if got != tt.expectedName {
+				t.Errorf("Expected name %q, got %q", tt.expectedName, got)
+			}
+		})
+	}
+}
