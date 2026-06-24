@@ -44,19 +44,19 @@ type (
 	helperFactory          = interfaces.ResourceHelperFactory[orcObjectPT, orcObjectT, resourceSpecT, filterT, osResourceT]
 )
 
-type dnszoneActuator struct {
+type dnsZoneActuator struct {
 	osClient  osclients.DNSZoneClient
 	k8sClient client.Client
 }
 
-var _ createResourceActuator = dnszoneActuator{}
-var _ deleteResourceActuator = dnszoneActuator{}
+var _ createResourceActuator = dnsZoneActuator{}
+var _ deleteResourceActuator = dnsZoneActuator{}
 
-func (dnszoneActuator) GetResourceID(osResource *osResourceT) string {
+func (dnsZoneActuator) GetResourceID(osResource *osResourceT) string {
 	return osResource.ID
 }
 
-func (actuator dnszoneActuator) GetOSResourceByID(ctx context.Context, id string) (*osResourceT, progress.ReconcileStatus) {
+func (actuator dnsZoneActuator) GetOSResourceByID(ctx context.Context, id string) (*osResourceT, progress.ReconcileStatus) {
 	resource, err := actuator.osClient.GetZone(ctx, id)
 	if err != nil {
 		return nil, progress.WrapError(err)
@@ -64,43 +64,75 @@ func (actuator dnszoneActuator) GetOSResourceByID(ctx context.Context, id string
 	return resource, nil
 }
 
-func (actuator dnszoneActuator) ListOSResourcesForAdoption(ctx context.Context, orcObject orcObjectPT) (iter.Seq2[*osResourceT, error], bool) {
+func (actuator dnsZoneActuator) ListOSResourcesForAdoption(ctx context.Context, orcObject orcObjectPT) (iter.Seq2[*osResourceT, error], bool) {
 	resourceSpec := orcObject.Spec.Resource
 	if resourceSpec == nil {
 		return nil, false
 	}
 
-	// TODO(scaffolding) If you need to filter resources on fields that the List() function
-	// of gophercloud does not support, it's possible to perform client-side filtering.
-	// Check osclients.ResourceFilter
+	var filters []osclients.ResourceFilter[osResourceT]
+
+	if resourceSpec.Description != nil {
+		filters = append(filters, func(f *zones.Zone) bool {
+			return f.Description == *resourceSpec.Description
+		})
+	} else {
+		filters = append(filters, func(f *zones.Zone) bool {
+			return f.Description == ""
+		})
+	}
+	filters = append(filters, func(f *zones.Zone) bool {
+		return f.Email == resourceSpec.Email
+	})
+	if resourceSpec.TTL != nil {
+		filters = append(filters, func(f *zones.Zone) bool {
+			return f.TTL == int(*resourceSpec.TTL)
+		})
+	}
+	filters = append(filters, func(f *zones.Zone) bool {
+		return f.Type == string(resourceSpec.Type)
+	})
 
 	listOpts := zones.ListOpts{
-		Name:        getResourceName(orcObject),
-		Description: ptr.Deref(resourceSpec.Description, ""),
+		Name: getResourceName(orcObject),
 	}
 
-	return actuator.osClient.ListZones(ctx, listOpts), true
+	return actuator.listOSResources(ctx, filters, listOpts), true
 }
 
-func (actuator dnszoneActuator) ListOSResourcesForImport(ctx context.Context, obj orcObjectPT, filter filterT) (iter.Seq2[*osResourceT, error], progress.ReconcileStatus) {
-	// TODO(scaffolding) If you need to filter resources on fields that the List() function
-	// of gophercloud does not support, it's possible to perform client-side filtering.
-	// Check osclients.ResourceFilter
+func (actuator dnsZoneActuator) ListOSResourcesForImport(ctx context.Context, obj orcObjectPT, filter filterT) (iter.Seq2[*osResourceT, error], progress.ReconcileStatus) {
+	var filters []osclients.ResourceFilter[osResourceT]
 
-	listOpts := zones.ListOpts{
-		Name:        string(ptr.Deref(filter.Name, "")),
-		Description: ptr.Deref(filter.Description, ""),
-		Email:       ptr.Deref(filter.Email, ""),
-		Type:        string(ptr.Deref(filter.Type, "")),
+	if filter.Name != nil {
+		filters = append(filters, func(f *zones.Zone) bool { return f.Name == string(*filter.Name) })
+	}
+	if filter.Email != nil {
+		filters = append(filters, func(f *zones.Zone) bool { return f.Email == *filter.Email })
+	}
+	if filter.Description != nil {
+		filters = append(filters, func(f *zones.Zone) bool { return f.Description == *filter.Description })
 	}
 	if filter.TTL != nil {
-		listOpts.TTL = int(*filter.TTL)
+		filters = append(filters, func(f *zones.Zone) bool { return f.TTL == int(*filter.TTL) })
+	}
+	if filter.Type != nil {
+		filters = append(filters, func(f *zones.Zone) bool { return f.Type == string(*filter.Type) })
 	}
 
-	return actuator.osClient.ListZones(ctx, listOpts), nil
+	listOpts := zones.ListOpts{}
+	if filter.Name != nil {
+		listOpts.Name = string(*filter.Name)
+	}
+
+	return actuator.listOSResources(ctx, filters, listOpts), nil
 }
 
-func (actuator dnszoneActuator) CreateResource(ctx context.Context, obj orcObjectPT) (*osResourceT, progress.ReconcileStatus) {
+func (actuator dnsZoneActuator) listOSResources(ctx context.Context, filters []osclients.ResourceFilter[osResourceT], listOpts zones.ListOptsBuilder) iter.Seq2[*zones.Zone, error] {
+	zones := actuator.osClient.ListZones(ctx, listOpts)
+	return osclients.Filter(zones, filters...)
+}
+
+func (actuator dnsZoneActuator) CreateResource(ctx context.Context, obj orcObjectPT) (*osResourceT, progress.ReconcileStatus) {
 	resource := obj.Spec.Resource
 
 	if resource == nil {
@@ -129,11 +161,11 @@ func (actuator dnszoneActuator) CreateResource(ctx context.Context, obj orcObjec
 	return osResource, nil
 }
 
-func (actuator dnszoneActuator) DeleteResource(ctx context.Context, _ orcObjectPT, resource *osResourceT) progress.ReconcileStatus {
+func (actuator dnsZoneActuator) DeleteResource(ctx context.Context, _ orcObjectPT, resource *osResourceT) progress.ReconcileStatus {
 	return progress.WrapError(actuator.osClient.DeleteZone(ctx, resource.ID))
 }
 
-func (actuator dnszoneActuator) updateResource(ctx context.Context, obj orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
+func (actuator dnsZoneActuator) updateResource(ctx context.Context, obj orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
 	log := ctrl.LoggerFrom(ctx)
 	resource := obj.Spec.Resource
 	if resource == nil {
@@ -201,7 +233,7 @@ func handleTTLUpdate(updateOpts *zones.UpdateOpts, resource *resourceSpecT, osRe
 	}
 }
 
-func (actuator dnszoneActuator) GetResourceReconcilers(ctx context.Context, orcObject orcObjectPT, osResource *osResourceT, controller interfaces.ResourceController) ([]resourceReconciler, progress.ReconcileStatus) {
+func (actuator dnsZoneActuator) GetResourceReconcilers(ctx context.Context, orcObject orcObjectPT, osResource *osResourceT, controller interfaces.ResourceController) ([]resourceReconciler, progress.ReconcileStatus) {
 	return []resourceReconciler{
 		actuator.updateResource,
 	}, nil
@@ -211,25 +243,25 @@ type dnszoneHelperFactory struct{}
 
 var _ helperFactory = dnszoneHelperFactory{}
 
-func newActuator(ctx context.Context, orcObject *orcv1alpha1.DNSZone, controller interfaces.ResourceController) (dnszoneActuator, progress.ReconcileStatus) {
+func newActuator(ctx context.Context, orcObject *orcv1alpha1.DNSZone, controller interfaces.ResourceController) (dnsZoneActuator, progress.ReconcileStatus) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Ensure credential secrets exist and have our finalizer
 	_, reconcileStatus := credentialsDependency.GetDependencies(ctx, controller.GetK8sClient(), orcObject, func(*corev1.Secret) bool { return true })
 	if needsReschedule, _ := reconcileStatus.NeedsReschedule(); needsReschedule {
-		return dnszoneActuator{}, reconcileStatus
+		return dnsZoneActuator{}, reconcileStatus
 	}
 
 	clientScope, err := controller.GetScopeFactory().NewClientScopeFromObject(ctx, controller.GetK8sClient(), log, orcObject)
 	if err != nil {
-		return dnszoneActuator{}, progress.WrapError(err)
+		return dnsZoneActuator{}, progress.WrapError(err)
 	}
 	osClient, err := clientScope.NewDNSZoneClient()
 	if err != nil {
-		return dnszoneActuator{}, progress.WrapError(err)
+		return dnsZoneActuator{}, progress.WrapError(err)
 	}
 
-	return dnszoneActuator{
+	return dnsZoneActuator{
 		osClient:  osClient,
 		k8sClient: controller.GetK8sClient(),
 	}, nil
