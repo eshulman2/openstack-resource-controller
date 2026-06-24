@@ -10,7 +10,7 @@ spec:
     secretName: openstack-clouds
   managementPolicy: managed
   resource:
-    name: dnszone-import-error-external-1.
+    name: import-error-1.example.com.
     description: DNSZone from "import error" test
     email: admin@example.com
     # TODO(scaffolding): add any required field
@@ -26,7 +26,7 @@ spec:
     secretName: openstack-clouds
   managementPolicy: managed
   resource:
-    name: dnszone-import-error-external-2.
+    name: import-error-2.example.com.
     description: DNSZone from "import error" test
     email: admin@example.com
     # TODO(scaffolding): add any required field

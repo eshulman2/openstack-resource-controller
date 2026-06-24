@@ -5,7 +5,7 @@ metadata:
   name: dnszone-update
 status:
   resource:
-    name: dnszone-update-updated.
+    name: update-updated.example.com.
     description: dnszone-update-updated
     email: admin@example.com
   conditions:

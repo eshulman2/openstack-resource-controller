@@ -12,5 +12,5 @@ spec:
   # TODO(scaffolding): Only add the mandatory fields. It's possible the resource
   # doesn't have mandatory fields, in that case, leave it empty.
   resource:
-    name: dnszone-update-updated.
+    name: update-updated.example.com.
     email: admin@example.com

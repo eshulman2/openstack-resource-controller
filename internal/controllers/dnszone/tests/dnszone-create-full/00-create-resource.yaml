@@ -10,6 +10,6 @@ spec:
     secretName: openstack-clouds
   managementPolicy: managed
   resource:
-    name: dnszone-create-full-override.
+    name: create-full.example.com.
     description: DNSZone from "create full" test
     email: admin@example.com

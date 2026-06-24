@@ -15,7 +15,7 @@ metadata:
   name: dnszone-update
 status:
   resource:
-    name: dnszone-update-updated.
+    name: update-updated.example.com.
     email: admin@example.com
   conditions:
   - type: Available
