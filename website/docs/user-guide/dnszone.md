@@ -1,12 +1,14 @@
 # DNS Zones (DNSZone)
 
-The `DNSZone` resource manages DNS zones in OpenStack Designate. It allows you to declaratively create, update, and delete primary DNS zones, or import existing zones for read-only access.
+The `DNSZone` resource manages DNS zones in OpenStack Designate. It allows you to declaratively create, update, and delete primary and secondary DNS zones, or import existing zones for read-only access.
 
 ---
 
 ## Core Concepts
 
-In OpenStack Designate, a DNS zone holds DNS records (such as A, AAAA, MX, TXT, etc.). Currently, ORC supports **PRIMARY** zones. Secondary zones are out of scope.
+In OpenStack Designate, a DNS zone holds DNS records (such as A, AAAA, MX, TXT, etc.). ORC supports both **PRIMARY** and **SECONDARY** zones:
+* **PRIMARY** zones are master zones where DNS records are managed directly within OpenStack Designate.
+* **SECONDARY** zones are read-only copies of zones that automatically perform zone transfers from external master DNS servers.
 
 ### Domain Name Syntax
 All DNS zone names in OpenStack Designate and ORC **must end with a trailing period** (e.g., `example.com.`). This is enforced by Kubernetes API validation rules.
@@ -17,14 +19,14 @@ All DNS zone names in OpenStack Designate and ORC **must end with a trailing per
 
 Like all ORC resources, `DNSZone` supports two management policies: `managed` and `unmanaged`.
 
-### 1. Managed Primary Zone (Default)
+### 1. Managed Zone (Default)
 
 In the `managed` policy, ORC handles the entire lifecycle of the DNS zone in OpenStack Designate.
 * **Creation**: ORC creates the zone if it does not exist.
-* **Update**: ORC synchronizes specifications (like description, email, and TTL) to Designate. (Note: `name` and `type` are immutable).
+* **Update**: ORC synchronizes specifications (like description, email, TTL, and masters) to Designate. (Note: `name` and `type` are immutable).
 * **Deletion**: On deletion of the Kubernetes resource, the corresponding Designate zone is deleted (unless `managedOptions.onDelete` is set to `detach`).
 
-#### Example: Managed DNSZone
+#### Option A: Managed Primary Zone
 
 ```yaml
 apiVersion: openstack.k-orc.cloud/v1alpha1
@@ -43,7 +45,7 @@ spec:
     name: primary.example.com.
     
     # email is the email address of the administrator for the zone.
-    # Required for PRIMARY zones.
+    # Required for PRIMARY zones. Must be omitted for SECONDARY zones.
     email: admin@example.com
     
     # description is a human-readable description for the DNS Zone.
@@ -52,9 +54,38 @@ spec:
     # ttl is the Time To Live for the zone in seconds.
     ttl: 3600
     
-    # type specifies the type of the zone. Currently, only 'PRIMARY' is supported.
+    # type specifies the type of the zone. Can be 'PRIMARY' or 'SECONDARY'.
     # Immutable after creation.
     type: PRIMARY
+```
+
+#### Option B: Managed Secondary Zone
+
+```yaml
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSZone
+metadata:
+  name: secondary-zone
+spec:
+  cloudCredentialsRef:
+    secretName: openstack-clouds
+    cloudName: openstack
+  managementPolicy: managed
+  resource:
+    # name specifies the name of the DNS Zone. Must end with a period.
+    name: secondary.example.com.
+    
+    # type specifies the type of the zone.
+    type: SECONDARY
+    
+    # masters specifies zone masters from which zone transfers are performed.
+    # Required for SECONDARY zones. Must be omitted for PRIMARY zones.
+    masters:
+      - 192.0.2.1
+      - 192.0.2.2
+    
+    description: "Complete managed secondary DNS zone example"
+    ttl: 3600
 ```
 
 ### 2. Unmanaged Import Workflow
@@ -111,12 +142,17 @@ The `DNSZone` Custom Resource Definition (CRD) implements strict validation via 
   * Immutable. Once created, you cannot change the zone name in the specification.
   * Defaults to the ORC object name (with a trailing period appended by the user) if not explicitly set.
 * **Type Validation**:
-  * Currently only `PRIMARY` is allowed.
+  * Allowed values are `PRIMARY` and `SECONDARY`.
   * Immutable. Once created, you cannot change the zone type.
 * **Email Validation**:
   * Required when `type` is `PRIMARY`.
+  * Must be omitted (not specified) when `type` is `SECONDARY`.
   * Must be a valid email format.
   * Maximum length of `255` characters.
+* **Masters Validation**:
+  * Required when `type` is `SECONDARY` (must specify at least one master IP address).
+  * Must be omitted (not specified) when `type` is `PRIMARY`.
+  * Maximum of `32` items, each with a maximum length of `255` characters.
 * **TTL Validation**:
   * Must be an integer between `1` and `2147483647` (inclusive).
 * **Description Validation**:
