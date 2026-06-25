@@ -9,7 +9,7 @@ nav:
     - Quick Start: getting-started.md
   - User Guide:
     - Overview: user-guide/index.md
-    - DNS Zones: user-guide/dnszone.md
+    - DNS (Zones & Recordsets): user-guide/dnszone.md
   - CRD Reference: crd-reference.md
   - Troubleshooting: troubleshooting.md
   - Contributing:
