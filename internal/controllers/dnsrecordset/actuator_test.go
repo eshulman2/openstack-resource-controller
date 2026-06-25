@@ -287,3 +287,121 @@ func TestDeleteResource(t *testing.T) {
 		t.Errorf("Expected nil status, got %v", status)
 	}
 }
+
+func TestCreateResourceValidation(t *testing.T) {
+	ctx := context.Background()
+
+	// Invalid A record format should trigger validation failure
+	orcObj := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				Name:       ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
+				Type:       "A",
+				Records:    []string{"not-an-ip"},
+				DNSZoneRef: "test-zone",
+			},
+		},
+	}
+
+	actuator := dnsRecordsetActuator{zoneID: testZoneID, zoneSuffix: "example.com.", orcObject: orcObj}
+	_, status := actuator.CreateResource(ctx, orcObj)
+	if status == nil {
+		t.Fatal("Expected error status on validation failure, got nil")
+	}
+
+	err := status.GetError()
+	if err == nil {
+		t.Fatal("Expected error to be set on status")
+	}
+
+	var terminalErr *orcerrors.TerminalError
+	if !errors.As(err, &terminalErr) {
+		t.Errorf("Expected TerminalError, got %T", err)
+	}
+}
+
+func TestUpdateResource(t *testing.T) {
+	ctx := context.Background()
+
+	orcObj := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				Name:        ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
+				Type:        "A",
+				Records:     []string{"1.2.3.4"},
+				TTL:         ptr.To[int32](300),
+				Description: ptr.To("new desc"),
+				DNSZoneRef:  "test-zone",
+			},
+		},
+	}
+
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSRecordsetClient(mockctrl)
+	actuator := dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, zoneSuffix: "example.com.", orcObject: orcObj}
+
+	// Case 1: No changes -> return nil
+	osResourceNoChanges := &recordsets.RecordSet{
+		ID:          "rs-id",
+		Name:        "www.example.com.",
+		Type:        "A",
+		Records:     []string{"1.2.3.4"},
+		TTL:         300,
+		Description: "new desc",
+	}
+	status := actuator.updateResource(ctx, orcObj, osResourceNoChanges)
+	if status != nil {
+		t.Errorf("Expected nil status for no changes, got %v", status)
+	}
+
+	// Case 2: TTL and Description changed -> call UpdateRecordset
+	osResourceWithChanges := &recordsets.RecordSet{
+		ID:          "rs-id",
+		Name:        "www.example.com.",
+		Type:        "A",
+		Records:     []string{"1.2.3.4"},
+		TTL:         600,
+		Description: "old desc",
+	}
+	expectedDesc := "new desc"
+	expectedTTL := 300
+	expectedOpts := recordsets.UpdateOpts{
+		Description: &expectedDesc,
+		TTL:         &expectedTTL,
+	}
+
+	mockClient.EXPECT().UpdateRecordset(ctx, testZoneID, "rs-id", expectedOpts).Return(&recordsets.RecordSet{}, nil)
+	status = actuator.updateResource(ctx, orcObj, osResourceWithChanges)
+	if status == nil {
+		t.Fatal("Expected non-nil status for successful update, got nil")
+	}
+	messages := status.GetProgressMessages()
+	if len(messages) == 0 || messages[0] != "Resource status will be refreshed" {
+		t.Errorf("Expected progress status to indicate refresh, got %v", messages)
+	}
+
+	// Case 3: validation fails during update
+	orcObjInvalid := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				Name:       ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
+				Type:       "A",
+				Records:    []string{"invalid-ip"},
+				DNSZoneRef: "test-zone",
+			},
+		},
+	}
+	status = actuator.updateResource(ctx, orcObjInvalid, osResourceNoChanges)
+	if status == nil {
+		t.Fatal("Expected non-nil status on validation failure, got nil")
+	}
+	err := status.GetError()
+	if err == nil {
+		t.Fatal("Expected error on validation failure")
+	}
+	var terminalErr *orcerrors.TerminalError
+	if !errors.As(err, &terminalErr) {
+		t.Errorf("Expected TerminalError, got %T", err)
+	}
+}

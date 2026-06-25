@@ -32,25 +32,30 @@ import (
 	orcv1alpha1 "github.com/k-orc/openstack-resource-controller/v2/api/v1alpha1"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/interfaces"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/progress"
+	"github.com/k-orc/openstack-resource-controller/v2/internal/logging"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/osclients"
 	orcerrors "github.com/k-orc/openstack-resource-controller/v2/internal/util/errors"
 )
 
 type (
-	createResourceActuator = interfaces.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT]
-	deleteResourceActuator = interfaces.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT]
-	helperFactory          = interfaces.ResourceHelperFactory[orcObjectPT, orcObjectT, resourceSpecT, filterT, osResourceT]
+	createResourceActuator    = interfaces.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT]
+	deleteResourceActuator    = interfaces.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT]
+	reconcileResourceActuator = interfaces.ReconcileResourceActuator[orcObjectPT, osResourceT]
+	resourceReconciler        = interfaces.ResourceReconciler[orcObjectPT, osResourceT]
+	helperFactory             = interfaces.ResourceHelperFactory[orcObjectPT, orcObjectT, resourceSpecT, filterT, osResourceT]
 )
 
 type dnsRecordsetActuator struct {
-	osClient  osclients.DNSRecordsetClient
-	k8sClient client.Client
-	zoneID    string
-	orcObject orcObjectPT
+	osClient   osclients.DNSRecordsetClient
+	k8sClient  client.Client
+	zoneID     string
+	zoneSuffix string
+	orcObject  orcObjectPT
 }
 
 var _ createResourceActuator = dnsRecordsetActuator{}
 var _ deleteResourceActuator = dnsRecordsetActuator{}
+var _ reconcileResourceActuator = dnsRecordsetActuator{}
 
 func (dnsRecordsetActuator) GetResourceID(osResource *osResourceT) string {
 	return osResource.ID
@@ -165,6 +170,11 @@ func (actuator dnsRecordsetActuator) CreateResource(ctx context.Context, obj orc
 			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "Creation requested, but spec.resource is not set"))
 	}
 
+	if err := ValidateDNSRecordset(obj, actuator.zoneSuffix); err != nil {
+		return nil, progress.WrapError(
+			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration: "+err.Error(), err))
+	}
+
 	if actuator.zoneID == "" {
 		return nil, progress.WaitingOnObject("DNSZone", string(resource.DNSZoneRef), progress.WaitingOnReady)
 	}
@@ -201,11 +211,75 @@ func (actuator dnsRecordsetActuator) DeleteResource(ctx context.Context, _ orcOb
 	return progress.WrapError(actuator.osClient.DeleteRecordset(ctx, actuator.zoneID, resource.ID))
 }
 
+func (actuator dnsRecordsetActuator) GetResourceReconcilers(ctx context.Context, orcObject orcObjectPT, osResource *osResourceT, controller interfaces.ResourceController) ([]resourceReconciler, progress.ReconcileStatus) {
+	return []resourceReconciler{
+		actuator.updateResource,
+	}, nil
+}
+
+func (actuator dnsRecordsetActuator) updateResource(ctx context.Context, obj orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
+	log := ctrl.LoggerFrom(ctx)
+	resource := obj.Spec.Resource
+	if resource == nil {
+		return progress.WrapError(
+			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "Update requested, but spec.resource is not set"))
+	}
+
+	if err := ValidateDNSRecordset(obj, actuator.zoneSuffix); err != nil {
+		return progress.WrapError(
+			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration: "+err.Error(), err))
+	}
+
+	if actuator.zoneID == "" {
+		return progress.WaitingOnObject("DNSZone", string(resource.DNSZoneRef), progress.WaitingOnReady)
+	}
+
+	updateOpts := recordsets.UpdateOpts{}
+	hasChanges := false
+
+	// Check Description
+	desiredDesc := ptr.Deref(resource.Description, "")
+	if osResource.Description != desiredDesc {
+		updateOpts.Description = &desiredDesc
+		hasChanges = true
+	}
+
+	// Check TTL
+	if resource.TTL != nil {
+		desiredTTL := int(*resource.TTL)
+		if osResource.TTL != desiredTTL {
+			updateOpts.TTL = &desiredTTL
+			hasChanges = true
+		}
+	}
+
+	// Check Records
+	if !recordsMatch(osResource.Records, resource.Records) {
+		updateOpts.Records = resource.Records
+		hasChanges = true
+	}
+
+	if !hasChanges {
+		log.V(logging.Verbose).Info("No changes")
+		return nil
+	}
+
+	_, err := actuator.osClient.UpdateRecordset(ctx, actuator.zoneID, osResource.ID, updateOpts)
+	if err != nil {
+		if !orcerrors.IsRetryable(err) {
+			err = orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration updating resource: "+err.Error(), err)
+		}
+		return progress.WrapError(err)
+	}
+
+	return progress.NeedsRefresh()
+}
+
 type dnsRecordsetHelperFactory struct{}
 
 var _ helperFactory = dnsRecordsetHelperFactory{}
 
-func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController) (dnsRecordsetActuator, progress.ReconcileStatus) {
+func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController, validate bool) (dnsRecordsetActuator, progress.ReconcileStatus) {
 	log := ctrl.LoggerFrom(ctx)
 
 	_, reconcileStatus := credentialsDependency.GetDependencies(ctx, controller.GetK8sClient(), orcObject, func(*corev1.Secret) bool { return true })
@@ -237,11 +311,30 @@ func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfac
 		zoneID = *dnsZone.Status.ID
 	}
 
+	var zoneSuffix string
+	if dnsZone != nil {
+		if dnsZone.Status.Resource != nil && dnsZone.Status.Resource.Name != "" {
+			zoneSuffix = dnsZone.Status.Resource.Name
+		} else if dnsZone.Spec.Resource != nil && dnsZone.Spec.Resource.Name != nil {
+			zoneSuffix = string(*dnsZone.Spec.Resource.Name)
+		} else {
+			zoneSuffix = dnsZone.Name
+		}
+	}
+
+	if validate && orcObject.Spec.Resource != nil {
+		if err := ValidateDNSRecordset(orcObject, zoneSuffix); err != nil {
+			return dnsRecordsetActuator{}, progress.WrapError(
+				orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration, "invalid configuration: "+err.Error(), err))
+		}
+	}
+
 	return dnsRecordsetActuator{
-		osClient:  osClient,
-		k8sClient: controller.GetK8sClient(),
-		zoneID:    zoneID,
-		orcObject: orcObject,
+		osClient:   osClient,
+		k8sClient:  controller.GetK8sClient(),
+		zoneID:     zoneID,
+		zoneSuffix: zoneSuffix,
+		orcObject:  orcObject,
 	}, nil
 }
 
@@ -250,11 +343,11 @@ func (dnsRecordsetHelperFactory) NewAPIObjectAdapter(obj orcObjectPT) interfaces
 }
 
 func (dnsRecordsetHelperFactory) NewCreateActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController) (interfaces.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT], progress.ReconcileStatus) {
-	return newActuator(ctx, orcObject, controller)
+	return newActuator(ctx, orcObject, controller, true)
 }
 
 func (dnsRecordsetHelperFactory) NewDeleteActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController) (interfaces.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT], progress.ReconcileStatus) {
-	return newActuator(ctx, orcObject, controller)
+	return newActuator(ctx, orcObject, controller, false)
 }
 
 func getDNSRecordsetName(orcObject orcObjectPT) string {
