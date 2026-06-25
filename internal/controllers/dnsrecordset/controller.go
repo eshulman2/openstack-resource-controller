@@ -74,6 +74,7 @@ var dnsZoneImportDependency = dependency.NewDeletionGuardDependency[*orcObjectLi
 		return []string{string(resource.Filter.DNSZoneRef)}
 	},
 	finalizer, externalObjectFieldOwner,
+	dependency.OverrideDependencyName("dnszoneimport"),
 )
 
 // SetupWithManager sets up the controller with the Manager.
