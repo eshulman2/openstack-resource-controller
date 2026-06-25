@@ -100,9 +100,9 @@ func (actuator dnsRecordsetActuator) ListOSResourcesForAdoption(ctx context.Cont
 				matches := true
 				var mismatchMsg string
 
-				if !recordsMatch(f.Records, resourceSpec.Records) {
+				if !recordsMatch(f.Records, getNormalizedRecords(resourceSpec.Type, resourceSpec.Records)) {
 					matches = false
-					mismatchMsg = fmt.Sprintf("records mismatch: OpenStack has %v, spec has %v", f.Records, resourceSpec.Records)
+					mismatchMsg = fmt.Sprintf("records mismatch: OpenStack has %v, spec has %v", f.Records, getNormalizedRecords(resourceSpec.Type, resourceSpec.Records))
 				} else if resourceSpec.TTL != nil && f.TTL != int(*resourceSpec.TTL) {
 					matches = false
 					mismatchMsg = fmt.Sprintf("TTL mismatch: OpenStack has %d, spec has %d", f.TTL, *resourceSpec.TTL)
@@ -182,7 +182,7 @@ func (actuator dnsRecordsetActuator) CreateResource(ctx context.Context, obj orc
 	createOpts := recordsets.CreateOpts{
 		Name:        getDNSRecordsetName(obj),
 		Type:        resource.Type,
-		Records:     resource.Records,
+		Records:     getNormalizedRecords(resource.Type, resource.Records),
 		Description: ptr.Deref(resource.Description, ""),
 	}
 	if resource.TTL != nil {
@@ -254,8 +254,8 @@ func (actuator dnsRecordsetActuator) updateResource(ctx context.Context, obj orc
 	}
 
 	// Check Records
-	if !recordsMatch(osResource.Records, resource.Records) {
-		updateOpts.Records = resource.Records
+	if !recordsMatch(osResource.Records, getNormalizedRecords(resource.Type, resource.Records)) {
+		updateOpts.Records = getNormalizedRecords(resource.Type, resource.Records)
 		hasChanges = true
 	}
 
@@ -313,6 +313,10 @@ func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfac
 				return orcv1alpha1.IsAvailable(dep) && dep.Status.ID != nil && *dep.Status.ID != ""
 			},
 		)
+	} else if orcObject.Spec.Import != nil && orcObject.Spec.Import.ID != nil {
+		return dnsRecordsetActuator{}, progress.WrapError(
+			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
+				"import by ID is not supported for DNSRecordset because recordsets are scoped under a zone; please import by filter and specify dnsZoneRef"))
 	}
 	reconcileStatus = reconcileStatus.WithReconcileStatus(dnsZoneRS)
 
@@ -405,4 +409,22 @@ func getDNSZoneRef(orcObject orcObjectPT) string {
 		return string(orcObject.Spec.Import.Filter.DNSZoneRef)
 	}
 	return ""
+}
+
+func getNormalizedRecords(recordType string, records []string) []string {
+	if len(records) == 0 {
+		return nil
+	}
+	normalized := make([]string, len(records))
+	copy(normalized, records)
+	if strings.ToUpper(recordType) == "TXT" {
+		for i, r := range normalized {
+			hasPrefix := strings.HasPrefix(r, `"`)
+			hasSuffix := strings.HasSuffix(r, `"`)
+			if !hasPrefix && !hasSuffix {
+				normalized[i] = `"` + r + `"`
+			}
+		}
+	}
+	return normalized
 }

@@ -49,7 +49,7 @@ func ValidateDNSRecordset(obj orcObjectPT, zoneSuffix string) error {
 		return errors.New("records are required")
 	}
 
-	for i, r := range resource.Records {
+	for _, r := range resource.Records {
 		switch recordType {
 		case "A":
 			ip := net.ParseIP(r)
@@ -71,10 +71,6 @@ func ValidateDNSRecordset(obj orcObjectPT, zoneSuffix string) error {
 			hasSuffix := strings.HasSuffix(r, `"`)
 			if hasPrefix != hasSuffix {
 				return fmt.Errorf("invalid TXT record %q: mismatched/unbalanced quotes", r)
-			}
-			// If missing quotes entirely, wrap it.
-			if !hasPrefix && !hasSuffix {
-				resource.Records[i] = `"` + r + `"`
 			}
 		}
 	}

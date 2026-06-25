@@ -211,9 +211,10 @@ func TestValidateDNSRecordset(t *testing.T) {
 				t.Errorf("ValidateDNSRecordset() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err == nil && tt.wantRecords != nil {
-				for i, r := range tt.obj.Spec.Resource.Records {
+				normalized := getNormalizedRecords(tt.obj.Spec.Resource.Type, tt.obj.Spec.Resource.Records)
+				for i, r := range normalized {
 					if r != tt.wantRecords[i] {
-						t.Errorf("ValidateDNSRecordset() mutated record = %q, want %q", r, tt.wantRecords[i])
+						t.Errorf("getNormalizedRecords() record = %q, want %q", r, tt.wantRecords[i])
 					}
 				}
 			}
