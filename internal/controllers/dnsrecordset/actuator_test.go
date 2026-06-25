@@ -22,6 +22,7 @@ import (
 	"iter"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -254,6 +255,25 @@ func TestCreateResource(t *testing.T) {
 	_, status = actuator.CreateResource(ctx, orcObj)
 	if status == nil {
 		t.Errorf("Expected error status on create failure, got nil")
+	}
+
+	// Case 4: 409 Conflict error on create
+	errConflict := gophercloud.ErrUnexpectedResponseCode{Actual: 409}
+	mockClient.EXPECT().CreateRecordset(ctx, testZoneID, createOpts).Return(nil, errConflict)
+	_, status = actuator.CreateResource(ctx, orcObj)
+	if status == nil {
+		t.Fatalf("Expected error status on 409 Conflict, got nil")
+	}
+	err := status.GetError()
+	if err == nil {
+		t.Fatal("Expected status error to be non-nil")
+	}
+	var terminalErr *orcerrors.TerminalError
+	if !errors.As(err, &terminalErr) {
+		t.Errorf("Expected TerminalError for 409 Conflict, got %T", err)
+	}
+	if terminalErr.Reason != orcv1alpha1.ConditionReasonUnrecoverableError {
+		t.Errorf("Expected ConditionReasonUnrecoverableError, got %s", terminalErr.Reason)
 	}
 }
 
