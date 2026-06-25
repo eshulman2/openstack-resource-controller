@@ -385,6 +385,136 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: secretName
       type:
         scalar: string
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordset
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetSpec
+      default: {}
+    - name: status
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetStatus
+      default: {}
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetFilter
+  map:
+    fields:
+    - name: description
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+    - name: ttl
+      type:
+        scalar: numeric
+    - name: type
+      type:
+        scalar: string
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetImport
+  map:
+    fields:
+    - name: filter
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetFilter
+    - name: id
+      type:
+        scalar: string
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetResourceSpec
+  map:
+    fields:
+    - name: description
+      type:
+        scalar: string
+    - name: dnsZoneRef
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+    - name: records
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: ttl
+      type:
+        scalar: numeric
+    - name: type
+      type:
+        scalar: string
+      default: ""
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetResourceStatus
+  map:
+    fields:
+    - name: description
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+    - name: records
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: status
+      type:
+        scalar: string
+    - name: ttl
+      type:
+        scalar: numeric
+    - name: type
+      type:
+        scalar: string
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetSpec
+  map:
+    fields:
+    - name: cloudCredentialsRef
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.CloudCredentialsReference
+      default: {}
+    - name: import
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetImport
+    - name: managedOptions
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.ManagedOptions
+    - name: managementPolicy
+      type:
+        scalar: string
+    - name: resource
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetResourceSpec
+- name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: id
+      type:
+        scalar: string
+    - name: resource
+      type:
+        namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetResourceStatus
 - name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSZone
   map:
     fields:

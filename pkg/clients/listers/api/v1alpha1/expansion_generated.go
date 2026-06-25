@@ -34,6 +34,14 @@ type ApplicationCredentialListerExpansion interface{}
 // ApplicationCredentialNamespaceLister.
 type ApplicationCredentialNamespaceListerExpansion interface{}
 
+// DNSRecordsetListerExpansion allows custom methods to be added to
+// DNSRecordsetLister.
+type DNSRecordsetListerExpansion interface{}
+
+// DNSRecordsetNamespaceListerExpansion allows custom methods to be added to
+// DNSRecordsetNamespaceLister.
+type DNSRecordsetNamespaceListerExpansion interface{}
+
 // DNSZoneListerExpansion allows custom methods to be added to
 // DNSZoneLister.
 type DNSZoneListerExpansion interface{}

@@ -22,6 +22,8 @@ type AddressScopeExpansion interface{}
 
 type ApplicationCredentialExpansion interface{}
 
+type DNSRecordsetExpansion interface{}
+
 type DNSZoneExpansion interface{}
 
 type DomainExpansion interface{}
