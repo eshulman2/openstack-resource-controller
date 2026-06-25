@@ -641,6 +641,35 @@ func TestHandleTTLUpdate(t *testing.T) {
 	}
 }
 
+func TestHandleMastersUpdate(t *testing.T) {
+	testCases := []struct {
+		name          string
+		newValue      []string
+		existingValue []string
+		expectChange  bool
+	}{
+		{name: "Identical", newValue: []string{"1.2.3.4"}, existingValue: []string{"1.2.3.4"}, expectChange: false},
+		{name: "Different length", newValue: []string{"1.2.3.4", "5.6.7.8"}, existingValue: []string{"1.2.3.4"}, expectChange: true},
+		{name: "Different value", newValue: []string{"1.2.3.4"}, existingValue: []string{"5.6.7.8"}, expectChange: true},
+		{name: "Both empty", newValue: nil, existingValue: nil, expectChange: false},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			resource := &orcv1alpha1.DNSZoneResourceSpec{Masters: tt.newValue}
+			osResource := &osResourceT{Masters: tt.existingValue}
+
+			updateOpts := zones.UpdateOpts{}
+			handleMastersUpdate(&updateOpts, resource, osResource)
+
+			got, _ := needsUpdate(updateOpts)
+			if got != tt.expectChange {
+				t.Errorf("Expected change: %v, got: %v", tt.expectChange, got)
+			}
+		})
+	}
+}
+
 func TestGetResourceReconcilers(t *testing.T) {
 	actuator := dnsZoneActuator{}
 	reconcilers, status := actuator.GetResourceReconcilers(context.Background(), &orcv1alpha1.DNSZone{}, &zones.Zone{}, nil)
