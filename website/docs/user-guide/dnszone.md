@@ -47,13 +47,13 @@ spec:
     # email is the email address of the administrator for the zone.
     # Required for PRIMARY zones. Must be omitted for SECONDARY zones.
     email: admin@example.com
-    
+
     # description is a human-readable description for the DNS Zone.
     description: "Complete managed primary DNS zone example"
-    
+
     # ttl is the Time To Live for the zone in seconds.
     ttl: 3600
-    
+
     # type specifies the type of the zone. Can be 'PRIMARY' or 'SECONDARY'.
     # Immutable after creation.
     type: PRIMARY
@@ -74,16 +74,16 @@ spec:
   resource:
     # name specifies the name of the DNS Zone. Must end with a period.
     name: secondary.example.com.
-    
+
     # type specifies the type of the zone.
     type: SECONDARY
-    
+
     # masters specifies zone masters from which zone transfers are performed.
     # Required for SECONDARY zones. Must be omitted for PRIMARY zones.
     masters:
       - 192.0.2.1
       - 192.0.2.2
-    
+
     description: "Complete managed secondary DNS zone example"
     ttl: 3600
 ```
