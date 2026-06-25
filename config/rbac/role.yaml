@@ -19,6 +19,7 @@ rules:
   resources:
   - addressscopes
   - applicationcredentials
+  - dnsrecordsets
   - dnszones
   - domains
   - endpoints
@@ -57,6 +58,7 @@ rules:
   resources:
   - addressscopes/status
   - applicationcredentials/status
+  - dnsrecordsets/status
   - dnszones/status
   - domains/status
   - endpoints/status
