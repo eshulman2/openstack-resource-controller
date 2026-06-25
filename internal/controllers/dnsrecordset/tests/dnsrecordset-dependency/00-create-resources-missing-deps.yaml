@@ -26,7 +26,7 @@ spec:
   managementPolicy: managed
   resource:
     dnsZoneRef: dnsrecordset-dependency-pending
-    name: no-dnszone.dependency.example.com.
+    name: no-dnszone.dependency-pending.example.com.
     type: A
     records:
     - 1.2.3.4

@@ -467,3 +467,25 @@ func TestListOSResourcesForImport(t *testing.T) {
 		t.Errorf("Expected to fetch recordset with ID 'imported-id', got ok=%v, err=%v, f=%v", ok, err, f)
 	}
 }
+
+func TestGetOSResourceByID_ZoneGone(t *testing.T) {
+	ctx := context.Background()
+	actuator := dnsRecordsetActuator{zoneGone: true}
+	res, status := actuator.GetOSResourceByID(ctx, "any-id")
+	if status != nil {
+		t.Errorf("Expected nil status when zoneGone is true, got %v", status)
+	}
+	if res != nil {
+		t.Errorf("Expected nil recordset when zoneGone is true, got %v", res)
+	}
+}
+
+func TestDeleteResource_ZoneGone(t *testing.T) {
+	ctx := context.Background()
+	orcObj := &orcv1alpha1.DNSRecordset{}
+	actuator := dnsRecordsetActuator{zoneGone: true}
+	status := actuator.DeleteResource(ctx, orcObj, &recordsets.RecordSet{ID: "any-id"})
+	if status != nil {
+		t.Errorf("Expected nil status when zoneGone is true, got %v", status)
+	}
+}

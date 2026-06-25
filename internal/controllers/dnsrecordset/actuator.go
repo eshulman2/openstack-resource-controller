@@ -25,6 +25,8 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,6 +53,7 @@ type dnsRecordsetActuator struct {
 	zoneID     string
 	zoneSuffix string
 	orcObject  orcObjectPT
+	zoneGone   bool
 }
 
 var _ createResourceActuator = dnsRecordsetActuator{}
@@ -62,6 +65,9 @@ func (dnsRecordsetActuator) GetResourceID(osResource *osResourceT) string {
 }
 
 func (actuator dnsRecordsetActuator) GetOSResourceByID(ctx context.Context, id string) (*osResourceT, progress.ReconcileStatus) {
+	if actuator.zoneGone {
+		return nil, nil
+	}
 	if actuator.zoneID == "" {
 		return nil, progress.WaitingOnObject("DNSZone", getDNSZoneRef(actuator.orcObject), progress.WaitingOnReady)
 	}
@@ -205,6 +211,9 @@ func (actuator dnsRecordsetActuator) CreateResource(ctx context.Context, obj orc
 }
 
 func (actuator dnsRecordsetActuator) DeleteResource(ctx context.Context, _ orcObjectPT, resource *osResourceT) progress.ReconcileStatus {
+	if actuator.zoneGone {
+		return nil
+	}
 	if actuator.zoneID == "" {
 		return progress.WaitingOnObject("DNSZone", getDNSZoneRef(actuator.orcObject), progress.WaitingOnReady)
 	}
@@ -281,6 +290,26 @@ var _ helperFactory = dnsRecordsetHelperFactory{}
 
 func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController, validate bool) (dnsRecordsetActuator, progress.ReconcileStatus) {
 	log := ctrl.LoggerFrom(ctx)
+
+	if !validate {
+		zoneRef := getDNSZoneRef(orcObject)
+		if zoneRef != "" {
+			var dnsZoneObj orcv1alpha1.DNSZone
+			err := controller.GetK8sClient().Get(ctx, types.NamespacedName{
+				Namespace: orcObject.GetNamespace(),
+				Name:      zoneRef,
+			}, &dnsZoneObj)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return dnsRecordsetActuator{zoneGone: true}, nil
+				}
+				return dnsRecordsetActuator{}, progress.WrapError(err)
+			}
+			if !dnsZoneObj.DeletionTimestamp.IsZero() {
+				return dnsRecordsetActuator{zoneGone: true}, nil
+			}
+		}
+	}
 
 	_, reconcileStatus := credentialsDependency.GetDependencies(ctx, controller.GetK8sClient(), orcObject, func(*corev1.Secret) bool { return true })
 	if needsReschedule, _ := reconcileStatus.NeedsReschedule(); needsReschedule {
