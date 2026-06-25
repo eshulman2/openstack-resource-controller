@@ -1,0 +1,16 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-import
+spec:
+  cloudCredentialsRef:
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: unmanaged
+  import:
+    filter:
+      dnsZoneRef: dnsrecordset-import
+      name: dnsrecordset-import-external.import.example.com.
+      type: A
+      description: DNSRecordset dnsrecordset-import-external from "dnsrecordset-import" test

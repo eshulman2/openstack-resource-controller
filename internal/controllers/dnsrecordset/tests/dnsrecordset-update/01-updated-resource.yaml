@@ -1,0 +1,13 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-update
+spec:
+  resource:
+    dnsZoneRef: dnsrecordset-update
+    name: record.update.example.com.
+    type: A
+    records:
+    - 1.2.3.4
+    description: dnsrecordset-update-updated

@@ -1,0 +1,33 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-create-minimal
+status:
+  resource:
+    name: dnsrecordset-create-minimal.create-minimal.example.com.
+    type: A
+    records:
+    - 1.2.3.4
+  conditions:
+  - type: Available
+    status: "True"
+    reason: Success
+  - type: Progressing
+    status: "False"
+    reason: Success
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+resourceRefs:
+    - apiVersion: openstack.k-orc.cloud/v1alpha1
+      kind: DNSRecordset
+      name: dnsrecordset-create-minimal
+      ref: dnsrecordset
+    - apiVersion: openstack.k-orc.cloud/v1alpha1
+      kind: DNSZone
+      name: dnsrecordset-create-minimal
+      ref: dNSZone
+assertAll:
+    - celExpr: "dnsrecordset.status.id != ''"
+    # TODO(scaffolding): Add more checks

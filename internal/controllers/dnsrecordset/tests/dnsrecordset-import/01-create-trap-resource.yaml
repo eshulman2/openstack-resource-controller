@@ -1,0 +1,36 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSZone
+metadata:
+  name: dnsrecordset-import-external-not-this-one
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  # TODO(scaffolding): Add the necessary fields to create the resource
+  resource:
+    name: import-external-not-this-one.example.com.
+    email: admin@example.com
+---
+# This `dnsrecordset-import-external-not-this-one` resource serves two purposes:
+# - ensure that we can successfully create another resource which name is a substring of it (i.e. it's not being adopted)
+# - ensure that importing a resource which name is a substring of it will not pick this one.
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-import-external-not-this-one
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  resource:
+    description: DNSRecordset dnsrecordset-import-external from "dnsrecordset-import" test
+    dnsZoneRef: dnsrecordset-import-external-not-this-one
+    name: dnsrecordset-import-external-not-this-one.import-external-not-this-one.example.com.
+    type: A
+    records:
+    - 1.2.3.4
