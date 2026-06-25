@@ -19,18 +19,14 @@ package dnsrecordset
 import (
 	"context"
 	"errors"
-	"iter"
 
-	"github.com/go-logr/logr"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	orcv1alpha1 "github.com/k-orc/openstack-resource-controller/v2/api/v1alpha1"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/interfaces"
-	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/progress"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/reconciler"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/scope"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/util/credentials"
@@ -100,63 +96,3 @@ func (c dnsrecordsetReconcilerConstructor) SetupWithManager(ctx context.Context,
 type objectApplyT = orcapplyconfigv1alpha1.DNSRecordsetApplyConfiguration
 type statusApplyT = orcapplyconfigv1alpha1.DNSRecordsetStatusApplyConfiguration
 type osResourceT = recordsets.RecordSet
-
-type dnsRecordsetStatusWriter struct{}
-
-var _ interfaces.ResourceStatusWriter[orcObjectPT, *osResourceT, *objectApplyT, *statusApplyT] = dnsRecordsetStatusWriter{}
-
-func (dnsRecordsetStatusWriter) GetApplyConfig(name, namespace string) *objectApplyT {
-	return orcapplyconfigv1alpha1.DNSRecordset(name, namespace)
-}
-
-func (dnsRecordsetStatusWriter) ResourceAvailableStatus(orcObject orcObjectPT, osResource *osResourceT) (metav1.ConditionStatus, progress.ReconcileStatus) {
-	return metav1.ConditionFalse, nil
-}
-
-func (dnsRecordsetStatusWriter) ApplyResourceStatus(log logr.Logger, osResource *osResourceT, statusApply *statusApplyT) {
-}
-
-type dnsRecordsetHelperFactory struct{}
-
-var _ interfaces.ResourceHelperFactory[orcObjectPT, orcObjectT, resourceSpecT, filterT, osResourceT] = dnsRecordsetHelperFactory{}
-
-func (dnsRecordsetHelperFactory) NewAPIObjectAdapter(obj orcObjectPT) interfaces.APIObjectAdapter[orcObjectPT, resourceSpecT, filterT] {
-	return dnsrecordsetAdapter{obj}
-}
-
-func (dnsRecordsetHelperFactory) NewCreateActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController) (interfaces.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT], progress.ReconcileStatus) {
-	return dnsRecordsetActuator{}, nil
-}
-
-func (dnsRecordsetHelperFactory) NewDeleteActuator(ctx context.Context, orcObject orcObjectPT, controller interfaces.ResourceController) (interfaces.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT], progress.ReconcileStatus) {
-	return dnsRecordsetActuator{}, nil
-}
-
-type dnsRecordsetActuator struct{}
-
-var _ interfaces.CreateResourceActuator[orcObjectPT, orcObjectT, filterT, osResourceT] = dnsRecordsetActuator{}
-var _ interfaces.DeleteResourceActuator[orcObjectPT, orcObjectT, osResourceT] = dnsRecordsetActuator{}
-
-func (dnsRecordsetActuator) GetResourceID(osResource *osResourceT) string {
-	return osResource.ID
-}
-
-func (dnsRecordsetActuator) GetOSResourceByID(ctx context.Context, id string) (*osResourceT, progress.ReconcileStatus) {
-	return nil, nil
-}
-
-func (dnsRecordsetActuator) ListOSResourcesForAdoption(ctx context.Context, orcObject orcObjectPT) (iter.Seq2[*osResourceT, error], bool) {
-	return nil, false
-}
-
-func (dnsRecordsetActuator) ListOSResourcesForImport(ctx context.Context, orcObject orcObjectPT, filter filterT) (iter.Seq2[*osResourceT, error], progress.ReconcileStatus) {
-	return nil, nil
-}
-
-func (dnsRecordsetActuator) CreateResource(ctx context.Context, orcObject orcObjectPT) (*osResourceT, progress.ReconcileStatus) {
-	return nil, nil
-}
-
-func (dnsRecordsetActuator) DeleteResource(ctx context.Context, orcObject orcObjectPT, osResource *osResourceT) progress.ReconcileStatus {
-	return nil
-}

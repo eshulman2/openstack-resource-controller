@@ -1,0 +1,289 @@
+/*
+Copyright The ORC Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package dnsrecordset
+
+import (
+	"context"
+	"errors"
+	"iter"
+	"testing"
+
+	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
+	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	orcv1alpha1 "github.com/k-orc/openstack-resource-controller/v2/api/v1alpha1"
+	"github.com/k-orc/openstack-resource-controller/v2/internal/osclients/mock"
+	orcerrors "github.com/k-orc/openstack-resource-controller/v2/internal/util/errors"
+)
+
+var (
+	errTest = errors.New("test error")
+)
+
+const (
+	testRecordsetName = "www.example.com."
+	testZoneID        = "test-zone-id"
+)
+
+func mockListRecordsets(recordsetsList []recordsets.RecordSet) iter.Seq2[*recordsets.RecordSet, error] {
+	return func(yield func(*recordsets.RecordSet, error) bool) {
+		for i := range recordsetsList {
+			if !yield(&recordsetsList[i], nil) {
+				return
+			}
+		}
+	}
+}
+
+func TestGetResourceID(t *testing.T) {
+	actuator := dnsRecordsetActuator{}
+	rs := &recordsets.RecordSet{ID: "test-rs-id"}
+	if got := actuator.GetResourceID(rs); got != "test-rs-id" {
+		t.Errorf("Expected test-rs-id, got %s", got)
+	}
+}
+
+func TestGetOSResourceByID(t *testing.T) {
+	ctx := context.Background()
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSRecordsetClient(mockctrl)
+
+	orcObj := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				DNSZoneRef: "test-zone",
+			},
+		},
+	}
+
+	// Case 1: empty zoneID -> wait-on-parent
+	actuatorEmptyZone := dnsRecordsetActuator{zoneID: "", orcObject: orcObj}
+	_, status := actuatorEmptyZone.GetOSResourceByID(ctx, "any-id")
+	if status == nil {
+		t.Errorf("Expected wait status on empty zoneID, got nil")
+	}
+
+	// Case 2: success
+	mockClient.EXPECT().GetRecordset(ctx, testZoneID, "found").Return(&recordsets.RecordSet{ID: "found", Name: testRecordsetName}, nil)
+	actuator := dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, orcObject: orcObj}
+	res, status := actuator.GetOSResourceByID(ctx, "found")
+	if status != nil {
+		t.Errorf("Expected nil status, got %v", status)
+	}
+	if res == nil || res.ID != "found" {
+		t.Errorf("Expected recordset with ID 'found', got %v", res)
+	}
+
+	// Case 3: error
+	mockClient.EXPECT().GetRecordset(ctx, testZoneID, "notfound").Return(nil, errTest)
+	res, status = actuator.GetOSResourceByID(ctx, "notfound")
+	if status == nil {
+		t.Errorf("Expected error status, got nil")
+	}
+	if res != nil {
+		t.Errorf("Expected nil recordset, got %v", res)
+	}
+}
+
+func TestListOSResourcesForAdoption(t *testing.T) {
+	ctx := context.Background()
+
+	orcObj := &orcv1alpha1.DNSRecordset{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "www.example.com.",
+		},
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				Name:       ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
+				Type:       "A",
+				Records:    []string{"1.2.3.4"},
+				TTL:        ptr.To[int32](300),
+				DNSZoneRef: "test-zone",
+			},
+		},
+	}
+
+	// Case 1: no spec resource
+	orcObjNoSpec := &orcv1alpha1.DNSRecordset{}
+	actuator := dnsRecordsetActuator{}
+	_, canAdopt := actuator.ListOSResourcesForAdoption(ctx, orcObjNoSpec)
+	if canAdopt {
+		t.Errorf("Expected canAdopt false with no spec resource")
+	}
+
+	// Case 2: empty zoneID -> canAdopt is false
+	actuatorEmptyZone := dnsRecordsetActuator{zoneID: ""}
+	_, canAdopt = actuatorEmptyZone.ListOSResourcesForAdoption(ctx, orcObj)
+	if canAdopt {
+		t.Errorf("Expected canAdopt false with empty zoneID")
+	}
+
+	// Case 3: property match succeeds
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSRecordsetClient(mockctrl)
+	actuator = dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, orcObject: orcObj}
+
+	listOpts := recordsets.ListOpts{
+		Name: "www.example.com.",
+		Type: "A",
+	}
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "1", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 300},
+	}))
+
+	seq, canAdopt := actuator.ListOSResourcesForAdoption(ctx, orcObj)
+	if !canAdopt {
+		t.Errorf("Expected canAdopt true")
+	}
+	next, stop := iter.Pull2(seq)
+	defer stop()
+	f, err, ok := next()
+	if !ok || err != nil || f == nil || f.ID != "1" {
+		t.Errorf("Expected to fetch recordset with ID '1', got ok=%v, err=%v, f=%v", ok, err, f)
+	}
+
+	// Case 4: property mismatch returns Terminal error
+	// records mismatch
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "1", Name: "www.example.com.", Type: "A", Records: []string{"8.8.8.8"}, TTL: 300},
+	}))
+	seq, _ = actuator.ListOSResourcesForAdoption(ctx, orcObj)
+	next, stop = iter.Pull2(seq)
+	defer stop()
+	_, err, ok = next()
+	if !ok || err == nil {
+		t.Errorf("Expected mismatch error, got ok=%v, err=%v", ok, err)
+	}
+	var terminalErr *orcerrors.TerminalError
+	if !errors.As(err, &terminalErr) {
+		t.Errorf("Expected TerminalError, got %v", err)
+	}
+
+	// Case 5: TTL mismatch returns Terminal error
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "1", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 600},
+	}))
+	seq, _ = actuator.ListOSResourcesForAdoption(ctx, orcObj)
+	next, stop = iter.Pull2(seq)
+	defer stop()
+	_, err, ok = next()
+	if !ok || err == nil {
+		t.Errorf("Expected TTL mismatch error, got ok=%v, err=%v", ok, err)
+	}
+
+	// Case 6: description mismatch returns Terminal error
+	orcObjWithDesc := orcObj.DeepCopy()
+	orcObjWithDesc.Spec.Resource.Description = ptr.To("testing description")
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "1", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 300, Description: "different desc"},
+	}))
+	actuatorWithDesc := dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, orcObject: orcObjWithDesc}
+	seq, _ = actuatorWithDesc.ListOSResourcesForAdoption(ctx, orcObjWithDesc)
+	next, stop = iter.Pull2(seq)
+	defer stop()
+	_, err, ok = next()
+	if !ok || err == nil {
+		t.Errorf("Expected description mismatch error, got ok=%v, err=%v", ok, err)
+	}
+}
+
+func TestCreateResource(t *testing.T) {
+	ctx := context.Background()
+
+	orcObj := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				Name:       ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
+				Type:       "A",
+				Records:    []string{"1.2.3.4"},
+				TTL:        ptr.To[int32](300),
+				DNSZoneRef: "test-zone",
+			},
+		},
+	}
+
+	// Case 1: empty zoneID -> wait-on-parent
+	actuatorEmptyZone := dnsRecordsetActuator{zoneID: "", orcObject: orcObj}
+	_, status := actuatorEmptyZone.CreateResource(ctx, orcObj)
+	if status == nil {
+		t.Errorf("Expected wait status on empty zoneID, got nil")
+	}
+
+	// Case 2: success
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSRecordsetClient(mockctrl)
+	actuator := dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, orcObject: orcObj}
+
+	createOpts := recordsets.CreateOpts{
+		Name:    "www.example.com.",
+		Type:    "A",
+		Records: []string{"1.2.3.4"},
+		TTL:     300,
+	}
+	mockClient.EXPECT().CreateRecordset(ctx, testZoneID, createOpts).Return(&recordsets.RecordSet{ID: "created-id", Name: "www.example.com."}, nil)
+
+	res, status := actuator.CreateResource(ctx, orcObj)
+	if status != nil {
+		t.Errorf("Expected nil status, got %v", status)
+	}
+	if res == nil || res.ID != "created-id" {
+		t.Errorf("Expected created recordset, got %v", res)
+	}
+
+	// Case 3: terminal error on create
+	mockClient.EXPECT().CreateRecordset(ctx, testZoneID, createOpts).Return(nil, errTest)
+	_, status = actuator.CreateResource(ctx, orcObj)
+	if status == nil {
+		t.Errorf("Expected error status on create failure, got nil")
+	}
+}
+
+func TestDeleteResource(t *testing.T) {
+	ctx := context.Background()
+
+	orcObj := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+				DNSZoneRef: "test-zone",
+			},
+		},
+	}
+
+	// Case 1: empty zoneID -> wait-on-parent
+	actuatorEmptyZone := dnsRecordsetActuator{zoneID: "", orcObject: orcObj}
+	status := actuatorEmptyZone.DeleteResource(ctx, orcObj, &recordsets.RecordSet{ID: "any-id"})
+	if status == nil {
+		t.Errorf("Expected wait status on empty zoneID, got nil")
+	}
+
+	// Case 2: success
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSRecordsetClient(mockctrl)
+	actuator := dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, orcObject: orcObj}
+
+	mockClient.EXPECT().DeleteRecordset(ctx, testZoneID, "del-id").Return(nil)
+	status = actuator.DeleteResource(ctx, orcObj, &recordsets.RecordSet{ID: "del-id"})
+	if status != nil {
+		t.Errorf("Expected nil status, got %v", status)
+	}
+}
