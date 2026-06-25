@@ -71,12 +71,27 @@ func (dnsRecordsetStatusWriter) ResourceAvailableStatus(orcObject orcObjectPT, o
 
 func (dnsRecordsetStatusWriter) ApplyResourceStatus(log logr.Logger, osResource *osResourceT, statusApply *statusApplyT) {
 	resourceStatus := orcapplyconfigv1alpha1.DNSRecordsetResourceStatus().
-		WithName(osResource.Name).
-		WithType(osResource.Type).
-		WithRecords(osResource.Records...).
-		WithTTL(int32(osResource.TTL)).
-		WithDescription(osResource.Description).
-		WithStatus(osResource.Status)
+		WithName(osResource.Name)
+
+	if osResource.Type != "" {
+		resourceStatus.WithType(osResource.Type)
+	}
+
+	if len(osResource.Records) > 0 {
+		resourceStatus.WithRecords(osResource.Records...)
+	}
+
+	if osResource.TTL > 0 {
+		resourceStatus.WithTTL(int32(osResource.TTL))
+	}
+
+	if osResource.Description != "" {
+		resourceStatus.WithDescription(osResource.Description)
+	}
+
+	if osResource.Status != "" {
+		resourceStatus.WithStatus(osResource.Status)
+	}
 
 	statusApply.WithResource(resourceStatus)
 }
