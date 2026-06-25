@@ -189,6 +189,34 @@ func TestValidateDNSRecordset(t *testing.T) {
 			wantErr:    true,
 		},
 		{
+			name: "Suffix collision but not subdomain",
+			obj: &orcv1alpha1.DNSRecordset{
+				Spec: orcv1alpha1.DNSRecordsetSpec{
+					Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+						Name:    ptr.To[orcv1alpha1.OpenStackName]("notexample.com."),
+						Type:    "A",
+						Records: []string{"192.168.1.1"},
+					},
+				},
+			},
+			zoneSuffix: "example.com.",
+			wantErr:    true,
+		},
+		{
+			name: "Exact match of zone suffix (Apex record)",
+			obj: &orcv1alpha1.DNSRecordset{
+				Spec: orcv1alpha1.DNSRecordsetSpec{
+					Resource: &orcv1alpha1.DNSRecordsetResourceSpec{
+						Name:    ptr.To[orcv1alpha1.OpenStackName]("example.com."),
+						Type:    "A",
+						Records: []string{"192.168.1.1"},
+					},
+				},
+			},
+			zoneSuffix: "example.com.",
+			wantErr:    false,
+		},
+		{
 			name: "Empty records list",
 			obj: &orcv1alpha1.DNSRecordset{
 				Spec: orcv1alpha1.DNSRecordsetSpec{

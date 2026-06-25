@@ -39,8 +39,10 @@ func ValidateDNSRecordset(obj orcObjectPT, zoneSuffix string) error {
 		normZoneSuffix += "."
 	}
 
-	if normZoneSuffix != "" && !strings.HasSuffix(normRecordsetName, normZoneSuffix) {
-		return fmt.Errorf("recordset name %q does not end with the parent zone suffix %q", recordsetName, zoneSuffix)
+	if normZoneSuffix != "" {
+		if normRecordsetName != normZoneSuffix && !strings.HasSuffix(normRecordsetName, "."+normZoneSuffix) {
+			return fmt.Errorf("recordset name %q does not end with the parent zone suffix %q", recordsetName, zoneSuffix)
+		}
 	}
 
 	// 2. Records format validation per recordset type
