@@ -32,6 +32,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="self.type == 'PRIMARY' ? (has(self.email) && self.email != \"\") : true",message="email is required for PRIMARY zones"
 // +kubebuilder:validation:XValidation:rule="self.type == 'SECONDARY' ? (has(self.masters) && self.masters.size() > 0) : true",message="masters: required when type is SECONDARY"
 // +kubebuilder:validation:XValidation:rule="self.type == 'PRIMARY' ? !has(self.masters) : true",message="masters: must not be specified when type is PRIMARY"
+// +kubebuilder:validation:XValidation:rule="self.type == 'SECONDARY' ? !has(self.email) : true",message="email: must not be specified when type is SECONDARY"
 type DNSZoneResourceSpec struct {
 	// name will be the name of the created resource. If not specified, the
 	// name of the ORC object will be used.

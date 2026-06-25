@@ -238,6 +238,8 @@ spec:
                     > 0) : true'
                 - message: 'masters: must not be specified when type is PRIMARY'
                   rule: 'self.type == ''PRIMARY'' ? !has(self.masters) : true'
+                - message: 'email: must not be specified when type is SECONDARY'
+                  rule: 'self.type == ''SECONDARY'' ? !has(self.email) : true'
             required:
             - cloudCredentialsRef
             type: object

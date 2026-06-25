@@ -43,7 +43,7 @@ spec:
     # Defaults to the ORC object name if not specified.
     # Immutable after creation.
     name: primary.example.com.
-    
+
     # email is the email address of the administrator for the zone.
     # Required for PRIMARY zones. Must be omitted for SECONDARY zones.
     email: admin@example.com

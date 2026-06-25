@@ -141,6 +141,16 @@ var _ = Describe("ORC DNSZone API validations", func() {
 		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("masters: required when type is SECONDARY")))
 	})
 
+	It("should reject SECONDARY type with email specified", func(ctx context.Context) {
+		dnszone := dnszoneStub(namespace)
+		patch := baseDNSZonePatch(dnszone)
+		patch.Spec.WithResource(applyconfigv1alpha1.DNSZoneResourceSpec().
+			WithType(orcv1alpha1.DNSZoneTypeSecondary).
+			WithEmail("admin@example.com").
+			WithMasters("1.2.3.4"))
+		Expect(applyObj(ctx, dnszone, patch)).To(MatchError(ContainSubstring("email: must not be specified when type is SECONDARY")))
+	})
+
 	It("should permit SECONDARY type with masters", func(ctx context.Context) {
 		dnszone := dnszoneStub(namespace)
 		patch := baseDNSZonePatch(dnszone)

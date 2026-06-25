@@ -16,4 +16,3 @@
 - Delete the `DNSZone` CR.
 - Verify that the `DNSZone` CR is deleted from Kubernetes, but the actual zone still exists in Designate.
 - Clean up the pre-created zone in Designate.
-
