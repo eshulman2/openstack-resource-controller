@@ -28,11 +28,11 @@ import (
 )
 
 type DNSRecordsetClient interface {
-	ListRecordsets(ctx context.Context, zoneID string, listOpts recordsets.ListOptsBuilder) iter.Seq2[*recordsets.RecordSet, error]
+	ListRecordsets(ctx context.Context, zoneID string, opts recordsets.ListOptsBuilder) iter.Seq2[*recordsets.RecordSet, error]
 	CreateRecordset(ctx context.Context, zoneID string, opts recordsets.CreateOptsBuilder) (*recordsets.RecordSet, error)
-	DeleteRecordset(ctx context.Context, zoneID string, resourceID string) error
-	GetRecordset(ctx context.Context, zoneID string, resourceID string) (*recordsets.RecordSet, error)
-	UpdateRecordset(ctx context.Context, zoneID string, id string, opts recordsets.UpdateOptsBuilder) (*recordsets.RecordSet, error)
+	GetRecordset(ctx context.Context, zoneID string, recordsetID string) (*recordsets.RecordSet, error)
+	UpdateRecordset(ctx context.Context, zoneID string, recordsetID string, opts recordsets.UpdateOptsBuilder) (*recordsets.RecordSet, error)
+	DeleteRecordset(ctx context.Context, zoneID string, recordsetID string) error
 }
 
 type dnsRecordsetClient struct{ client *gophercloud.ServiceClient }
@@ -51,8 +51,8 @@ func NewDNSRecordsetClient(providerClient *gophercloud.ProviderClient, providerC
 	return &dnsRecordsetClient{client}, nil
 }
 
-func (c dnsRecordsetClient) ListRecordsets(ctx context.Context, zoneID string, listOpts recordsets.ListOptsBuilder) iter.Seq2[*recordsets.RecordSet, error] {
-	pager := recordsets.ListByZone(c.client, zoneID, listOpts)
+func (c dnsRecordsetClient) ListRecordsets(ctx context.Context, zoneID string, opts recordsets.ListOptsBuilder) iter.Seq2[*recordsets.RecordSet, error] {
+	pager := recordsets.ListByZone(c.client, zoneID, opts)
 	return func(yield func(*recordsets.RecordSet, error) bool) {
 		_ = pager.EachPage(ctx, yieldPage(recordsets.ExtractRecordSets, yield))
 	}
@@ -62,16 +62,16 @@ func (c dnsRecordsetClient) CreateRecordset(ctx context.Context, zoneID string, 
 	return recordsets.Create(ctx, c.client, zoneID, opts).Extract()
 }
 
-func (c dnsRecordsetClient) DeleteRecordset(ctx context.Context, zoneID string, resourceID string) error {
-	return recordsets.Delete(ctx, c.client, zoneID, resourceID).ExtractErr()
+func (c dnsRecordsetClient) DeleteRecordset(ctx context.Context, zoneID string, recordsetID string) error {
+	return recordsets.Delete(ctx, c.client, zoneID, recordsetID).ExtractErr()
 }
 
-func (c dnsRecordsetClient) GetRecordset(ctx context.Context, zoneID string, resourceID string) (*recordsets.RecordSet, error) {
-	return recordsets.Get(ctx, c.client, zoneID, resourceID).Extract()
+func (c dnsRecordsetClient) GetRecordset(ctx context.Context, zoneID string, recordsetID string) (*recordsets.RecordSet, error) {
+	return recordsets.Get(ctx, c.client, zoneID, recordsetID).Extract()
 }
 
-func (c dnsRecordsetClient) UpdateRecordset(ctx context.Context, zoneID string, id string, opts recordsets.UpdateOptsBuilder) (*recordsets.RecordSet, error) {
-	return recordsets.Update(ctx, c.client, zoneID, id, opts).Extract()
+func (c dnsRecordsetClient) UpdateRecordset(ctx context.Context, zoneID string, recordsetID string, opts recordsets.UpdateOptsBuilder) (*recordsets.RecordSet, error) {
+	return recordsets.Update(ctx, c.client, zoneID, recordsetID, opts).Extract()
 }
 
 type dnsRecordsetErrorClient struct{ error }

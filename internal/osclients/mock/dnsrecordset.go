@@ -73,59 +73,59 @@ func (mr *MockDNSRecordsetClientMockRecorder) CreateRecordset(ctx, zoneID, opts 
 }
 
 // DeleteRecordset mocks base method.
-func (m *MockDNSRecordsetClient) DeleteRecordset(ctx context.Context, zoneID, resourceID string) error {
+func (m *MockDNSRecordsetClient) DeleteRecordset(ctx context.Context, zoneID, recordsetID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteRecordset", ctx, zoneID, resourceID)
+	ret := m.ctrl.Call(m, "DeleteRecordset", ctx, zoneID, recordsetID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteRecordset indicates an expected call of DeleteRecordset.
-func (mr *MockDNSRecordsetClientMockRecorder) DeleteRecordset(ctx, zoneID, resourceID any) *gomock.Call {
+func (mr *MockDNSRecordsetClientMockRecorder) DeleteRecordset(ctx, zoneID, recordsetID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRecordset", reflect.TypeOf((*MockDNSRecordsetClient)(nil).DeleteRecordset), ctx, zoneID, resourceID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRecordset", reflect.TypeOf((*MockDNSRecordsetClient)(nil).DeleteRecordset), ctx, zoneID, recordsetID)
 }
 
 // GetRecordset mocks base method.
-func (m *MockDNSRecordsetClient) GetRecordset(ctx context.Context, zoneID, resourceID string) (*recordsets.RecordSet, error) {
+func (m *MockDNSRecordsetClient) GetRecordset(ctx context.Context, zoneID, recordsetID string) (*recordsets.RecordSet, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRecordset", ctx, zoneID, resourceID)
+	ret := m.ctrl.Call(m, "GetRecordset", ctx, zoneID, recordsetID)
 	ret0, _ := ret[0].(*recordsets.RecordSet)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRecordset indicates an expected call of GetRecordset.
-func (mr *MockDNSRecordsetClientMockRecorder) GetRecordset(ctx, zoneID, resourceID any) *gomock.Call {
+func (mr *MockDNSRecordsetClientMockRecorder) GetRecordset(ctx, zoneID, recordsetID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecordset", reflect.TypeOf((*MockDNSRecordsetClient)(nil).GetRecordset), ctx, zoneID, resourceID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecordset", reflect.TypeOf((*MockDNSRecordsetClient)(nil).GetRecordset), ctx, zoneID, recordsetID)
 }
 
 // ListRecordsets mocks base method.
-func (m *MockDNSRecordsetClient) ListRecordsets(ctx context.Context, zoneID string, listOpts recordsets.ListOptsBuilder) iter.Seq2[*recordsets.RecordSet, error] {
+func (m *MockDNSRecordsetClient) ListRecordsets(ctx context.Context, zoneID string, opts recordsets.ListOptsBuilder) iter.Seq2[*recordsets.RecordSet, error] {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListRecordsets", ctx, zoneID, listOpts)
+	ret := m.ctrl.Call(m, "ListRecordsets", ctx, zoneID, opts)
 	ret0, _ := ret[0].(iter.Seq2[*recordsets.RecordSet, error])
 	return ret0
 }
 
 // ListRecordsets indicates an expected call of ListRecordsets.
-func (mr *MockDNSRecordsetClientMockRecorder) ListRecordsets(ctx, zoneID, listOpts any) *gomock.Call {
+func (mr *MockDNSRecordsetClientMockRecorder) ListRecordsets(ctx, zoneID, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRecordsets", reflect.TypeOf((*MockDNSRecordsetClient)(nil).ListRecordsets), ctx, zoneID, listOpts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRecordsets", reflect.TypeOf((*MockDNSRecordsetClient)(nil).ListRecordsets), ctx, zoneID, opts)
 }
 
 // UpdateRecordset mocks base method.
-func (m *MockDNSRecordsetClient) UpdateRecordset(ctx context.Context, zoneID, id string, opts recordsets.UpdateOptsBuilder) (*recordsets.RecordSet, error) {
+func (m *MockDNSRecordsetClient) UpdateRecordset(ctx context.Context, zoneID, recordsetID string, opts recordsets.UpdateOptsBuilder) (*recordsets.RecordSet, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRecordset", ctx, zoneID, id, opts)
+	ret := m.ctrl.Call(m, "UpdateRecordset", ctx, zoneID, recordsetID, opts)
 	ret0, _ := ret[0].(*recordsets.RecordSet)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateRecordset indicates an expected call of UpdateRecordset.
-func (mr *MockDNSRecordsetClientMockRecorder) UpdateRecordset(ctx, zoneID, id, opts any) *gomock.Call {
+func (mr *MockDNSRecordsetClientMockRecorder) UpdateRecordset(ctx, zoneID, recordsetID, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRecordset", reflect.TypeOf((*MockDNSRecordsetClient)(nil).UpdateRecordset), ctx, zoneID, id, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRecordset", reflect.TypeOf((*MockDNSRecordsetClient)(nil).UpdateRecordset), ctx, zoneID, recordsetID, opts)
 }
