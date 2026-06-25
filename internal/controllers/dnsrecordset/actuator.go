@@ -63,7 +63,7 @@ func (dnsRecordsetActuator) GetResourceID(osResource *osResourceT) string {
 
 func (actuator dnsRecordsetActuator) GetOSResourceByID(ctx context.Context, id string) (*osResourceT, progress.ReconcileStatus) {
 	if actuator.zoneID == "" {
-		return nil, progress.WaitingOnObject("DNSZone", string(actuator.orcObject.Spec.Resource.DNSZoneRef), progress.WaitingOnReady)
+		return nil, progress.WaitingOnObject("DNSZone", getDNSZoneRef(actuator.orcObject), progress.WaitingOnReady)
 	}
 	resource, err := actuator.osClient.GetRecordset(ctx, actuator.zoneID, id)
 	if err != nil {
@@ -132,7 +132,7 @@ func (actuator dnsRecordsetActuator) ListOSResourcesForAdoption(ctx context.Cont
 
 func (actuator dnsRecordsetActuator) ListOSResourcesForImport(ctx context.Context, orcObject orcObjectPT, filter filterT) (iter.Seq2[*osResourceT, error], progress.ReconcileStatus) {
 	if actuator.zoneID == "" {
-		return nil, progress.WaitingOnObject("DNSZone", string(orcObject.Spec.Resource.DNSZoneRef), progress.WaitingOnReady)
+		return nil, progress.WaitingOnObject("DNSZone", getDNSZoneRef(orcObject), progress.WaitingOnReady)
 	}
 
 	var filters []osclients.ResourceFilter[osResourceT]
@@ -176,7 +176,7 @@ func (actuator dnsRecordsetActuator) CreateResource(ctx context.Context, obj orc
 	}
 
 	if actuator.zoneID == "" {
-		return nil, progress.WaitingOnObject("DNSZone", string(resource.DNSZoneRef), progress.WaitingOnReady)
+		return nil, progress.WaitingOnObject("DNSZone", getDNSZoneRef(obj), progress.WaitingOnReady)
 	}
 
 	createOpts := recordsets.CreateOpts{
@@ -206,7 +206,7 @@ func (actuator dnsRecordsetActuator) CreateResource(ctx context.Context, obj orc
 
 func (actuator dnsRecordsetActuator) DeleteResource(ctx context.Context, _ orcObjectPT, resource *osResourceT) progress.ReconcileStatus {
 	if actuator.zoneID == "" {
-		return progress.WaitingOnObject("DNSZone", string(actuator.orcObject.Spec.Resource.DNSZoneRef), progress.WaitingOnReady)
+		return progress.WaitingOnObject("DNSZone", getDNSZoneRef(actuator.orcObject), progress.WaitingOnReady)
 	}
 	return progress.WrapError(actuator.osClient.DeleteRecordset(ctx, actuator.zoneID, resource.ID))
 }
@@ -231,7 +231,7 @@ func (actuator dnsRecordsetActuator) updateResource(ctx context.Context, obj orc
 	}
 
 	if actuator.zoneID == "" {
-		return progress.WaitingOnObject("DNSZone", string(resource.DNSZoneRef), progress.WaitingOnReady)
+		return progress.WaitingOnObject("DNSZone", getDNSZoneRef(obj), progress.WaitingOnReady)
 	}
 
 	updateOpts := recordsets.UpdateOpts{}
@@ -296,12 +296,26 @@ func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfac
 		return dnsRecordsetActuator{}, progress.WrapError(err)
 	}
 
-	dnsZone, reconcileStatus := dnsZoneDependency.GetDependency(
-		ctx, controller.GetK8sClient(), orcObject,
-		func(dep *orcv1alpha1.DNSZone) bool {
-			return orcv1alpha1.IsAvailable(dep) && dep.Status.ID != nil && *dep.Status.ID != ""
-		},
-	)
+	var dnsZone *orcv1alpha1.DNSZone
+	var dnsZoneRS progress.ReconcileStatus
+
+	if orcObject.Spec.Resource != nil {
+		dnsZone, dnsZoneRS = dnsZoneDependency.GetDependency(
+			ctx, controller.GetK8sClient(), orcObject,
+			func(dep *orcv1alpha1.DNSZone) bool {
+				return orcv1alpha1.IsAvailable(dep) && dep.Status.ID != nil && *dep.Status.ID != ""
+			},
+		)
+	} else if orcObject.Spec.Import != nil && orcObject.Spec.Import.Filter != nil {
+		dnsZone, dnsZoneRS = dnsZoneImportDependency.GetDependency(
+			ctx, controller.GetK8sClient(), orcObject,
+			func(dep *orcv1alpha1.DNSZone) bool {
+				return orcv1alpha1.IsAvailable(dep) && dep.Status.ID != nil && *dep.Status.ID != ""
+			},
+		)
+	}
+	reconcileStatus = reconcileStatus.WithReconcileStatus(dnsZoneRS)
+
 	if needsReschedule, _ := reconcileStatus.NeedsReschedule(); needsReschedule {
 		return dnsRecordsetActuator{}, reconcileStatus
 	}
@@ -378,4 +392,17 @@ func recordsMatch(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func getDNSZoneRef(orcObject orcObjectPT) string {
+	if orcObject == nil {
+		return ""
+	}
+	if orcObject.Spec.Resource != nil {
+		return string(orcObject.Spec.Resource.DNSZoneRef)
+	}
+	if orcObject.Spec.Import != nil && orcObject.Spec.Import.Filter != nil {
+		return string(orcObject.Spec.Import.Filter.DNSZoneRef)
+	}
+	return ""
 }

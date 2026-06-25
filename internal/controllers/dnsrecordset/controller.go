@@ -64,6 +64,18 @@ var dnsZoneDependency = dependency.NewDeletionGuardDependency[*orcObjectListT, *
 	finalizer, externalObjectFieldOwner,
 )
 
+var dnsZoneImportDependency = dependency.NewDeletionGuardDependency[*orcObjectListT, *orcv1alpha1.DNSZone](
+	"spec.import.filter.dnsZoneRef",
+	func(obj orcObjectPT) []string {
+		resource := obj.Spec.Import
+		if resource == nil || resource.Filter == nil {
+			return nil
+		}
+		return []string{string(resource.Filter.DNSZoneRef)}
+	},
+	finalizer, externalObjectFieldOwner,
+)
+
 // SetupWithManager sets up the controller with the Manager.
 func (c dnsrecordsetReconcilerConstructor) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -74,15 +86,24 @@ func (c dnsrecordsetReconcilerConstructor) SetupWithManager(ctx context.Context,
 		return err
 	}
 
+	dnsZoneImportWatchEventHandler, err := dnsZoneImportDependency.WatchEventHandler(log, k8sClient)
+	if err != nil {
+		return err
+	}
+
 	builder := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&orcv1alpha1.DNSRecordset{}).
 		Watches(&orcv1alpha1.DNSZone{}, dnsZoneWatchEventHandler,
 			builder.WithPredicates(predicates.NewBecameAvailable(log, &orcv1alpha1.DNSZone{})),
+		).
+		Watches(&orcv1alpha1.DNSZone{}, dnsZoneImportWatchEventHandler,
+			builder.WithPredicates(predicates.NewBecameAvailable(log, &orcv1alpha1.DNSZone{})),
 		)
 
 	if err := errors.Join(
 		dnsZoneDependency.AddToManager(ctx, mgr),
+		dnsZoneImportDependency.AddToManager(ctx, mgr),
 		credentialsDependency.AddToManager(ctx, mgr),
 		credentials.AddCredentialsWatch(log, k8sClient, builder, credentialsDependency),
 	); err != nil {

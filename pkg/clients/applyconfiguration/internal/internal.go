@@ -412,6 +412,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: description
       type:
         scalar: string
+    - name: dnsZoneRef
+      type:
+        scalar: string
     - name: name
       type:
         scalar: string

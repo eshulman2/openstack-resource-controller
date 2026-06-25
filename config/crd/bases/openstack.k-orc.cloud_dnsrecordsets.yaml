@@ -96,6 +96,12 @@ spec:
                         maxLength: 255
                         minLength: 1
                         type: string
+                      dnsZoneRef:
+                        description: dnsZoneRef is a reference to the ORC DNSZone
+                          this recordset is associated with.
+                        maxLength: 253
+                        minLength: 1
+                        type: string
                       name:
                         description: name of the existing resource.
                         maxLength: 255
@@ -115,6 +121,8 @@ spec:
                         description: type of the existing resource.
                         maxLength: 255
                         type: string
+                    required:
+                    - dnsZoneRef
                     type: object
                   id:
                     description: |-

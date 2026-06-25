@@ -58,6 +58,10 @@ type DNSRecordsetResourceSpec struct {
 // DNSRecordsetFilter defines an existing resource by its properties.
 // +kubebuilder:validation:MinProperties:=1
 type DNSRecordsetFilter struct {
+	// dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with.
+	// +required
+	DNSZoneRef KubernetesNameRef `json:"dnsZoneRef,omitempty"`
+
 	// name of the existing resource.
 	// +kubebuilder:validation:XValidation:rule="self.endsWith('.')",message="name must end with a period"
 	// +optional

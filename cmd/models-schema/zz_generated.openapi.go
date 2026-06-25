@@ -1729,6 +1729,13 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSRecordsetFilter(ref
 				Description: "DNSRecordsetFilter defines an existing resource by its properties.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"dnsZoneRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name of the existing resource.",
@@ -1758,6 +1765,7 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSRecordsetFilter(ref
 						},
 					},
 				},
+				Required: []string{"dnsZoneRef"},
 			},
 		},
 	}

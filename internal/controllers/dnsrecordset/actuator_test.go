@@ -425,3 +425,45 @@ func TestUpdateResource(t *testing.T) {
 		t.Errorf("Expected TerminalError, got %T", err)
 	}
 }
+
+func TestListOSResourcesForImport(t *testing.T) {
+	ctx := context.Background()
+	mockctrl := gomock.NewController(t)
+	defer mockctrl.Finish()
+	mockClient := mock.NewMockDNSRecordsetClient(mockctrl)
+
+	orcObj := &orcv1alpha1.DNSRecordset{
+		Spec: orcv1alpha1.DNSRecordsetSpec{
+			Import: &orcv1alpha1.DNSRecordsetImport{
+				Filter: &orcv1alpha1.DNSRecordsetFilter{
+					DNSZoneRef: "test-zone",
+					Name:       ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
+					Type:       ptr.To("A"),
+				},
+			},
+		},
+	}
+
+	actuator := dnsRecordsetActuator{osClient: mockClient, zoneID: testZoneID, orcObject: orcObj}
+
+	listOpts := recordsets.ListOpts{
+		Name: "www.example.com.",
+		Type: "A",
+	}
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "imported-id", Name: "www.example.com.", Type: "A"},
+	}))
+
+	filter := orcObj.Spec.Import.Filter
+	seq, status := actuator.ListOSResourcesForImport(ctx, orcObj, *filter)
+	if status != nil {
+		t.Fatalf("Expected nil status, got %v", status)
+	}
+
+	next, stop := iter.Pull2(seq)
+	defer stop()
+	f, err, ok := next()
+	if !ok || err != nil || f == nil || f.ID != "imported-id" {
+		t.Errorf("Expected to fetch recordset with ID 'imported-id', got ok=%v, err=%v, f=%v", ok, err, f)
+	}
+}

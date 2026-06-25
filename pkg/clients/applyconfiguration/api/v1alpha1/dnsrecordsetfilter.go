@@ -25,16 +25,25 @@ import (
 // DNSRecordsetFilterApplyConfiguration represents a declarative configuration of the DNSRecordsetFilter type for use
 // with apply.
 type DNSRecordsetFilterApplyConfiguration struct {
-	Name        *apiv1alpha1.OpenStackName `json:"name,omitempty"`
-	Type        *string                    `json:"type,omitempty"`
-	TTL         *int32                     `json:"ttl,omitempty"`
-	Description *string                    `json:"description,omitempty"`
+	DNSZoneRef  *apiv1alpha1.KubernetesNameRef `json:"dnsZoneRef,omitempty"`
+	Name        *apiv1alpha1.OpenStackName     `json:"name,omitempty"`
+	Type        *string                        `json:"type,omitempty"`
+	TTL         *int32                         `json:"ttl,omitempty"`
+	Description *string                        `json:"description,omitempty"`
 }
 
 // DNSRecordsetFilterApplyConfiguration constructs a declarative configuration of the DNSRecordsetFilter type for use with
 // apply.
 func DNSRecordsetFilter() *DNSRecordsetFilterApplyConfiguration {
 	return &DNSRecordsetFilterApplyConfiguration{}
+}
+
+// WithDNSZoneRef sets the DNSZoneRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DNSZoneRef field is set to the value of the last call.
+func (b *DNSRecordsetFilterApplyConfiguration) WithDNSZoneRef(value apiv1alpha1.KubernetesNameRef) *DNSRecordsetFilterApplyConfiguration {
+	b.DNSZoneRef = &value
+	return b
 }
 
 // WithName sets the Name field in the declarative configuration to the given value

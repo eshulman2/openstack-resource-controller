@@ -588,6 +588,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `dnsZoneRef` _[KubernetesNameRef](#kubernetesnameref)_ | dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with. |  | MaxLength: 253 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `name` _[OpenStackName](#openstackname)_ | name of the existing resource. |  | MaxLength: 255 <br />MinLength: 1 <br />Pattern: `^[^,]+$` <br />Optional: \{\} <br /> |
 | `type` _string_ | type of the existing resource. |  | MaxLength: 255 <br />Optional: \{\} <br /> |
 | `ttl` _integer_ | ttl of the existing resource. |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
@@ -2489,6 +2490,7 @@ _Appears in:_
 - [ApplicationCredentialAccessRule](#applicationcredentialaccessrule)
 - [ApplicationCredentialFilter](#applicationcredentialfilter)
 - [ApplicationCredentialResourceSpec](#applicationcredentialresourcespec)
+- [DNSRecordsetFilter](#dnsrecordsetfilter)
 - [DNSRecordsetResourceSpec](#dnsrecordsetresourcespec)
 - [EndpointFilter](#endpointfilter)
 - [EndpointResourceSpec](#endpointresourcespec)
