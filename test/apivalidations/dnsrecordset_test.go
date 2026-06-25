@@ -81,7 +81,7 @@ var _ = Describe("ORC DNSRecordset API validations", func() {
 			p.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter()))
 		},
 		applyValidFilter: func(p *applyconfigv1alpha1.DNSRecordsetApplyConfiguration) {
-			p.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.")))
+			p.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone")))
 		},
 		applyManaged: func(p *applyconfigv1alpha1.DNSRecordsetApplyConfiguration) {
 			p.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyManaged)
