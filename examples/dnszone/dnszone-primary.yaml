@@ -19,6 +19,6 @@ spec:
     description: "Complete managed primary DNS zone example"
     # ttl is the Time To Live for the zone in seconds.
     ttl: 3600
-    # type specifies the type of the zone. Currently, only 'PRIMARY' is supported.
+    # type specifies the type of the zone. Can be 'PRIMARY' or 'SECONDARY'.
     # Immutable after creation.
     type: PRIMARY
