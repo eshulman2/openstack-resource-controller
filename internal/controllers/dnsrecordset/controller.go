@@ -73,7 +73,7 @@ var dnsZoneImportDependency = dependency.NewDeletionGuardDependency[*orcObjectLi
 		}
 		return []string{string(resource.Filter.DNSZoneRef)}
 	},
-	finalizer, externalObjectFieldOwner,
+	finalizer+"-import", externalObjectFieldOwner,
 	dependency.OverrideDependencyName("dnszoneimport"),
 )
 

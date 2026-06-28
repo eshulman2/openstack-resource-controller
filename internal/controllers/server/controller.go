@@ -96,7 +96,7 @@ var (
 			}
 			return []string{string(resource.BootVolume.VolumeRef)}
 		},
-		finalizer, externalObjectFieldOwner,
+		finalizer+"-bootvolume", externalObjectFieldOwner,
 		dependency.OverrideDependencyName("bootvolume"),
 	)
 
