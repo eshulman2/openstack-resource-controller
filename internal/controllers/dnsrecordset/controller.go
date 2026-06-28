@@ -64,7 +64,7 @@ var dnsZoneDependency = dependency.NewDeletionGuardDependency[*orcObjectListT, *
 	finalizer, externalObjectFieldOwner,
 )
 
-var dnsZoneImportDependency = dependency.NewDeletionGuardDependency[*orcObjectListT, *orcv1alpha1.DNSZone](
+var dnsZoneImportDependency = dependency.NewDependency[*orcObjectListT, *orcv1alpha1.DNSZone](
 	"spec.import.filter.dnsZoneRef",
 	func(obj orcObjectPT) []string {
 		resource := obj.Spec.Import
@@ -73,8 +73,6 @@ var dnsZoneImportDependency = dependency.NewDeletionGuardDependency[*orcObjectLi
 		}
 		return []string{string(resource.Filter.DNSZoneRef)}
 	},
-	finalizer+"-import", externalObjectFieldOwner,
-	dependency.OverrideDependencyName("dnszoneimport"),
 )
 
 // SetupWithManager sets up the controller with the Manager.

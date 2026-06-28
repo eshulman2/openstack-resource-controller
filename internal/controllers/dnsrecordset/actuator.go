@@ -36,6 +36,7 @@ import (
 	"github.com/k-orc/openstack-resource-controller/v2/internal/controllers/generic/progress"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/logging"
 	"github.com/k-orc/openstack-resource-controller/v2/internal/osclients"
+	"github.com/k-orc/openstack-resource-controller/v2/internal/util/dependency"
 	orcerrors "github.com/k-orc/openstack-resource-controller/v2/internal/util/errors"
 )
 
@@ -336,8 +337,8 @@ func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfac
 			},
 		)
 	} else if orcObject.Spec.Import != nil && orcObject.Spec.Import.Filter != nil {
-		dnsZone, dnsZoneRS = dnsZoneImportDependency.GetDependency(
-			ctx, controller.GetK8sClient(), orcObject,
+		dnsZone, dnsZoneRS = dependency.FetchDependency(
+			ctx, controller.GetK8sClient(), orcObject.GetNamespace(), &orcObject.Spec.Import.Filter.DNSZoneRef, "DNSZone",
 			func(dep *orcv1alpha1.DNSZone) bool {
 				return orcv1alpha1.IsAvailable(dep) && dep.Status.ID != nil && *dep.Status.ID != ""
 			},
