@@ -418,12 +418,14 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
+      default: ""
     - name: ttl
       type:
         scalar: numeric
     - name: type
       type:
         scalar: string
+      default: ""
 - name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetImport
   map:
     fields:

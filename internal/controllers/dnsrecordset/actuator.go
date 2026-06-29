@@ -144,12 +144,8 @@ func (actuator dnsRecordsetActuator) ListOSResourcesForImport(ctx context.Contex
 
 	var filters []osclients.ResourceFilter[osResourceT]
 
-	if filter.Name != nil {
-		filters = append(filters, func(f *osResourceT) bool { return namesMatch(f.Name, string(*filter.Name)) })
-	}
-	if filter.Type != nil {
-		filters = append(filters, func(f *osResourceT) bool { return strings.EqualFold(f.Type, *filter.Type) })
-	}
+	filters = append(filters, func(f *osResourceT) bool { return namesMatch(f.Name, string(filter.Name)) })
+	filters = append(filters, func(f *osResourceT) bool { return strings.EqualFold(f.Type, filter.Type) })
 	if filter.TTL != nil {
 		filters = append(filters, func(f *osResourceT) bool { return f.TTL == int(*filter.TTL) })
 	}
@@ -157,12 +153,9 @@ func (actuator dnsRecordsetActuator) ListOSResourcesForImport(ctx context.Contex
 		filters = append(filters, func(f *osResourceT) bool { return f.Description == *filter.Description })
 	}
 
-	listOpts := recordsets.ListOpts{}
-	if filter.Name != nil {
-		listOpts.Name = string(*filter.Name)
-	}
-	if filter.Type != nil {
-		listOpts.Type = *filter.Type
+	listOpts := recordsets.ListOpts{
+		Name: string(filter.Name),
+		Type: filter.Type,
 	}
 
 	recordsetsSeq := actuator.osClient.ListRecordsets(ctx, actuator.zoneID, listOpts)

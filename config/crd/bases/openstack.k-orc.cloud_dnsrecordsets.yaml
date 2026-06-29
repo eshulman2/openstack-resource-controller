@@ -102,6 +102,9 @@ spec:
                         maxLength: 253
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: dnsZoneRef is immutable
+                          rule: self == oldSelf
                       name:
                         description: name of the existing resource.
                         maxLength: 255
@@ -111,6 +114,8 @@ spec:
                         x-kubernetes-validations:
                         - message: name must end with a period
                           rule: self.endsWith('.')
+                        - message: name is immutable
+                          rule: self == oldSelf
                       ttl:
                         description: ttl of the existing resource.
                         format: int32
@@ -121,8 +126,13 @@ spec:
                         description: type of the existing resource.
                         maxLength: 255
                         type: string
+                        x-kubernetes-validations:
+                        - message: type is immutable
+                          rule: self == oldSelf
                     required:
                     - dnsZoneRef
+                    - name
+                    - type
                     type: object
                 required:
                 - filter

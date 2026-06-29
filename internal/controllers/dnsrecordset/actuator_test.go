@@ -437,8 +437,8 @@ func TestListOSResourcesForImport(t *testing.T) {
 			Import: &orcv1alpha1.DNSRecordsetImport{
 				Filter: &orcv1alpha1.DNSRecordsetFilter{
 					DNSZoneRef: "test-zone",
-					Name:       ptr.To[orcv1alpha1.OpenStackName]("www.example.com."),
-					Type:       ptr.To("A"),
+					Name:       "www.example.com.",
+					Type:       "A",
 				},
 			},
 		},

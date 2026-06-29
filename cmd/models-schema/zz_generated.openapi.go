@@ -1739,6 +1739,7 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSRecordsetFilter(ref
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name of the existing resource.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1746,6 +1747,7 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSRecordsetFilter(ref
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "type of the existing resource.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1765,7 +1767,7 @@ func schema_openstack_resource_controller_v2_api_v1alpha1_DNSRecordsetFilter(ref
 						},
 					},
 				},
-				Required: []string{"dnsZoneRef"},
+				Required: []string{"dnsZoneRef", "name", "type"},
 			},
 		},
 	}

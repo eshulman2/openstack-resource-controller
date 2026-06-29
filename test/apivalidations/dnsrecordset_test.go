@@ -53,7 +53,7 @@ func baseDNSRecordsetPatch(obj client.Object) *applyconfigv1alpha1.DNSRecordsetA
 }
 
 func testDNSRecordsetImport() *applyconfigv1alpha1.DNSRecordsetImportApplyConfiguration {
-	return applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone"))
+	return applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone").WithType("A"))
 }
 
 var _ = Describe("ORC DNSRecordset API validations", func() {
@@ -80,7 +80,7 @@ var _ = Describe("ORC DNSRecordset API validations", func() {
 			p.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter()))
 		},
 		applyValidFilter: func(p *applyconfigv1alpha1.DNSRecordsetApplyConfiguration) {
-			p.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone")))
+			p.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone").WithType("A")))
 		},
 		applyManaged: func(p *applyconfigv1alpha1.DNSRecordsetApplyConfiguration) {
 			p.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyManaged)
@@ -151,6 +151,77 @@ var _ = Describe("ORC DNSRecordset API validations", func() {
 
 		patch = baseDNSRecordsetPatch(dnsrecordset)
 		patch.Spec.WithResource(testDNSRecordsetResource().WithDNSZoneRef("updated-zone"))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("dnsZoneRef is immutable")))
+	})
+
+	It("should reject import filter missing name", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithDNSZoneRef("my-zone").WithType("A"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("Required value")))
+	})
+
+	It("should reject import filter missing type", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("Required value")))
+	})
+
+	It("should enforce import filter name immutability", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone").WithType("A"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(Succeed())
+
+		patch = baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("bar.").WithDNSZoneRef("my-zone").WithType("A"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("name is immutable")))
+	})
+
+	It("should enforce import filter type immutability", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone").WithType("A"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(Succeed())
+
+		patch = baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone").WithType("AAAA"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("type is immutable")))
+	})
+
+	It("should enforce import filter dnsZoneRef immutability", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone").WithType("A"),
+		))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(Succeed())
+
+		patch = baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithManagementPolicy(orcv1alpha1.ManagementPolicyUnmanaged)
+		patch.Spec.WithImport(applyconfigv1alpha1.DNSRecordsetImport().WithFilter(
+			applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("updated-zone").WithType("A"),
+		))
 		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("dnsZoneRef is immutable")))
 	})
 })

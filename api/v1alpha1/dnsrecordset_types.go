@@ -61,18 +61,21 @@ type DNSRecordsetResourceSpec struct {
 // +kubebuilder:validation:MinProperties:=1
 type DNSRecordsetFilter struct {
 	// dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="dnsZoneRef is immutable"
 	// +required
 	DNSZoneRef KubernetesNameRef `json:"dnsZoneRef,omitempty"`
 
 	// name of the existing resource.
 	// +kubebuilder:validation:XValidation:rule="self.endsWith('.')",message="name must end with a period"
-	// +optional
-	Name *OpenStackName `json:"name,omitempty"`
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="name is immutable"
+	// +required
+	Name OpenStackName `json:"name"` //nolint:kubeapilinter // Name is required
 
 	// type of the existing resource.
 	// +kubebuilder:validation:MaxLength:=255
-	// +optional
-	Type *string `json:"type,omitempty"`
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="type is immutable"
+	// +required
+	Type string `json:"type"`
 
 	// ttl of the existing resource.
 	// +kubebuilder:validation:Minimum:=1
