@@ -31,4 +31,4 @@ resourceRefs:
 assertAll:
     - celExpr: "dnsrecordset.status.id != ''"
     - celExpr: "!has(dnsrecordset.status.resource.description)"
-    - celExpr: "has(dnsrecordset.status.resource.ttl)"
+    - celExpr: "!has(dnsrecordset.status.resource.ttl)"
