@@ -21,7 +21,6 @@ package v1alpha1
 // DNSRecordsetImportApplyConfiguration represents a declarative configuration of the DNSRecordsetImport type for use
 // with apply.
 type DNSRecordsetImportApplyConfiguration struct {
-	ID     *string                               `json:"id,omitempty"`
 	Filter *DNSRecordsetFilterApplyConfiguration `json:"filter,omitempty"`
 }
 
@@ -29,14 +28,6 @@ type DNSRecordsetImportApplyConfiguration struct {
 // apply.
 func DNSRecordsetImport() *DNSRecordsetImportApplyConfiguration {
 	return &DNSRecordsetImportApplyConfiguration{}
-}
-
-// WithID sets the ID field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ID field is set to the value of the last call.
-func (b *DNSRecordsetImportApplyConfiguration) WithID(value string) *DNSRecordsetImportApplyConfiguration {
-	b.ID = &value
-	return b
 }
 
 // WithFilter sets the Filter field in the declarative configuration to the given value

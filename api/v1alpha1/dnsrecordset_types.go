@@ -26,6 +26,7 @@ type DNSRecordsetResourceSpec struct {
 	Name *OpenStackName `json:"name,omitempty"`
 
 	// type is the type of the recordset (e.g., A, AAAA, CNAME, MX, TXT, etc.).
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="type is immutable"
 	// +kubebuilder:validation:MaxLength:=255
 	// +required
 	Type string `json:"type"`
@@ -51,6 +52,7 @@ type DNSRecordsetResourceSpec struct {
 	Description *string `json:"description,omitempty"`
 
 	// dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="dnsZoneRef is immutable"
 	// +required
 	DNSZoneRef KubernetesNameRef `json:"dnsZoneRef,omitempty"`
 }
@@ -83,6 +85,19 @@ type DNSRecordsetFilter struct {
 	// +kubebuilder:validation:MaxLength:=255
 	// +optional
 	Description *string `json:"description,omitempty"`
+}
+
+// DNSRecordsetImport specifies an existing resource which will be imported instead of
+// creating a new one.
+// +kubebuilder:validation:MinProperties:=1
+// +kubebuilder:validation:MaxProperties:=1
+type DNSRecordsetImport struct {
+	// filter contains a resource query which is expected to return a single
+	// result. The controller will continue to retry if filter returns no
+	// results. If filter returns multiple results the controller will set an
+	// error state and will not continue to retry.
+	// +required
+	Filter *DNSRecordsetFilter `json:"filter,omitempty"`
 }
 
 // DNSRecordsetResourceStatus represents the observed state of the resource.

@@ -5,10 +5,14 @@ metadata:
   name: dnsrecordset-sample
 spec:
   cloudCredentialsRef:
-    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
     cloudName: openstack
     secretName: openstack-clouds
   managementPolicy: managed
   resource:
+    name: sample.example.com.
+    type: A
+    records:
+    - 1.2.3.4
+    ttl: 3600
     description: Sample DNSRecordset
-    # TODO(scaffolding): Add all fields the resource supports
+    dnsZoneRef: dnszone-sample

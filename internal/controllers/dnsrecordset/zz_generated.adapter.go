@@ -67,7 +67,7 @@ func (f adapterT) GetImportID() *string {
 	if f.Spec.Import == nil {
 		return nil
 	}
-	return f.Spec.Import.ID
+	return nil
 }
 
 func (f adapterT) GetImportFilter() *filterT {

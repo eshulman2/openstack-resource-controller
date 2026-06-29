@@ -8,7 +8,8 @@ status:
     name: record.update.example.com.
     type: A
     records:
-    - 1.2.3.4
+    - 5.6.7.8
+    ttl: 1800
     description: dnsrecordset-update-updated
   conditions:
   - type: Available

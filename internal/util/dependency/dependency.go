@@ -298,10 +298,6 @@ func EnsureFinalizer(ctx context.Context, k8sClient client.Client, obj client.Ob
 		return nil
 	}
 
-	if !obj.GetDeletionTimestamp().IsZero() {
-		return nil
-	}
-
 	log := ctrl.LoggerFrom(ctx)
 	log.V(logging.Verbose).Info("Adding finalizer", "objectName", obj.GetName(), "objectKind", obj.GetObjectKind().GroupVersionKind().Kind)
 	patch := finalizers.SetFinalizerPatch(obj, finalizer)

@@ -124,14 +124,8 @@ spec:
                     required:
                     - dnsZoneRef
                     type: object
-                  id:
-                    description: |-
-                      id contains the unique identifier of an existing OpenStack resource. Note
-                      that when specifying an import by ID, the resource MUST already exist.
-                      The ORC object will enter an error state if the resource does not exist.
-                    format: uuid
-                    maxLength: 36
-                    type: string
+                required:
+                - filter
                 type: object
               managedOptions:
                 description: managedOptions specifies options which may be applied
@@ -183,6 +177,9 @@ spec:
                     maxLength: 253
                     minLength: 1
                     type: string
+                    x-kubernetes-validations:
+                    - message: dnsZoneRef is immutable
+                      rule: self == oldSelf
                   name:
                     description: |-
                       name will be the name of the created resource. If not specified, the
@@ -216,6 +213,9 @@ spec:
                       CNAME, MX, TXT, etc.).
                     maxLength: 255
                     type: string
+                    x-kubernetes-validations:
+                    - message: type is immutable
+                      rule: self == oldSelf
                 required:
                 - dnsZoneRef
                 - records

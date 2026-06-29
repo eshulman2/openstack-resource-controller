@@ -30,4 +30,5 @@ resourceRefs:
       ref: dNSZone
 assertAll:
     - celExpr: "dnsrecordset.status.id != ''"
-    # TODO(scaffolding): Add more checks
+    - celExpr: "!has(dnsrecordset.status.resource.description)"
+    - celExpr: "has(dnsrecordset.status.resource.ttl)"

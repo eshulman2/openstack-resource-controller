@@ -29,5 +29,6 @@ spec:
     type: A
     records:
     - 1.2.3.4
+    ttl: 3600
     description: DNSRecordset from "create full" test
     dnsZoneRef: dnsrecordset-create-full

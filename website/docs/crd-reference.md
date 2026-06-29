@@ -600,7 +600,7 @@ _Appears in:_
 
 
 DNSRecordsetImport specifies an existing resource which will be imported instead of
-creating a new one
+creating a new one.
 
 _Validation:_
 - MaxProperties: 1
@@ -611,8 +611,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `id` _string_ | id contains the unique identifier of an existing OpenStack resource. Note<br />that when specifying an import by ID, the resource MUST already exist.<br />The ORC object will enter an error state if the resource does not exist. |  | Format: uuid <br />MaxLength: 36 <br />Optional: \{\} <br /> |
-| `filter` _[DNSRecordsetFilter](#dnsrecordsetfilter)_ | filter contains a resource query which is expected to return a single<br />result. The controller will continue to retry if filter returns no<br />results. If filter returns multiple results the controller will set an<br />error state and will not continue to retry. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `filter` _[DNSRecordsetFilter](#dnsrecordsetfilter)_ | filter contains a resource query which is expected to return a single<br />result. The controller will continue to retry if filter returns no<br />results. If filter returns multiple results the controller will set an<br />error state and will not continue to retry. |  | MinProperties: 1 <br />Required: \{\} <br /> |
 
 
 #### DNSRecordsetResourceSpec

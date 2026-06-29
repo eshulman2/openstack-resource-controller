@@ -71,11 +71,16 @@ type templateFields struct {
 	// non-generated *_types.go file. When true, the Import type will not be generated.
 	// Default is false (Import type is generated).
 	HasCustomImport bool
+	// CustomImportHasNoID indicates that the custom import does not have an ID or Name field,
+	// and so GetImportID should return nil.
+	CustomImportHasNoID bool
 }
 
 var resources []templateFields = []templateFields{
 	{
-		Name: "DNSRecordset",
+		Name:                "DNSRecordset",
+		HasCustomImport:     true,
+		CustomImportHasNoID: true,
 	},
 	{
 		Name: "DNSZone",

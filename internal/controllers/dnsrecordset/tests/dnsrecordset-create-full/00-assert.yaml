@@ -9,7 +9,9 @@ status:
     type: A
     records:
     - 1.2.3.4
+    ttl: 3600
     description: DNSRecordset from "create full" test
+    status: ACTIVE
   conditions:
   - type: Available
     status: "True"
@@ -31,4 +33,5 @@ resourceRefs:
       ref: dNSZone
 assertAll:
     - celExpr: "dnsrecordset.status.id != ''"
-    # TODO(scaffolding): Add more checks
+    - celExpr: "dnsrecordset.status.resource.ttl == 3600"
+    - celExpr: "dnsrecordset.status.resource.status == 'ACTIVE'"

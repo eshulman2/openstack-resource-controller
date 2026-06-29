@@ -430,9 +430,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: filter
       type:
         namedType: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetFilter
-    - name: id
-      type:
-        scalar: string
 - name: com.github.k-orc.openstack-resource-controller.v2.api.v1alpha1.DNSRecordsetResourceSpec
   map:
     fields:

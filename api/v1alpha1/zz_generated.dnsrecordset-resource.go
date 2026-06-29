@@ -21,27 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DNSRecordsetImport specifies an existing resource which will be imported instead of
-// creating a new one
-// +kubebuilder:validation:MinProperties:=1
-// +kubebuilder:validation:MaxProperties:=1
-type DNSRecordsetImport struct {
-	// id contains the unique identifier of an existing OpenStack resource. Note
-	// that when specifying an import by ID, the resource MUST already exist.
-	// The ORC object will enter an error state if the resource does not exist.
-	// +kubebuilder:validation:Format:=uuid
-	// +kubebuilder:validation:MaxLength:=36
-	// +optional
-	ID *string `json:"id,omitempty"` //nolint:kubeapilinter
-
-	// filter contains a resource query which is expected to return a single
-	// result. The controller will continue to retry if filter returns no
-	// results. If filter returns multiple results the controller will set an
-	// error state and will not continue to retry.
-	// +optional
-	Filter *DNSRecordsetFilter `json:"filter,omitempty"`
-}
-
 // DNSRecordsetSpec defines the desired state of an ORC object.
 // +kubebuilder:validation:XValidation:rule="self.managementPolicy == 'managed' ? has(self.resource) : true",message="resource must be specified when policy is managed"
 // +kubebuilder:validation:XValidation:rule="self.managementPolicy == 'managed' ? !has(self.__import__) : true",message="import may not be specified when policy is managed"

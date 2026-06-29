@@ -30,7 +30,6 @@ import (
 
 const (
 	dnsrecordsetName = "dnsrecordset"
-	dnsrecordsetID   = "265c9e4f-0f5a-46e4-9f3f-fb8de25ae120"
 )
 
 func dnsrecordsetStub(namespace *corev1.Namespace) *orcv1alpha1.DNSRecordset {
@@ -54,7 +53,7 @@ func baseDNSRecordsetPatch(obj client.Object) *applyconfigv1alpha1.DNSRecordsetA
 }
 
 func testDNSRecordsetImport() *applyconfigv1alpha1.DNSRecordsetImportApplyConfiguration {
-	return applyconfigv1alpha1.DNSRecordsetImport().WithID(dnsrecordsetID)
+	return applyconfigv1alpha1.DNSRecordsetImport().WithFilter(applyconfigv1alpha1.DNSRecordsetFilter().WithName("foo.").WithDNSZoneRef("my-zone"))
 }
 
 var _ = Describe("ORC DNSRecordset API validations", func() {
@@ -131,5 +130,27 @@ var _ = Describe("ORC DNSRecordset API validations", func() {
 		patch = baseDNSRecordsetPatch(dnsrecordset)
 		patch.Spec.WithResource(testDNSRecordsetResource().WithName("updated-name."))
 		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("name is immutable")))
+	})
+
+	It("should enforce type immutability", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithResource(testDNSRecordsetResource().WithType("A"))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(Succeed())
+
+		patch = baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithResource(testDNSRecordsetResource().WithType("AAAA"))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("type is immutable")))
+	})
+
+	It("should enforce dnsZoneRef immutability", func(ctx context.Context) {
+		dnsrecordset := dnsrecordsetStub(namespace)
+		patch := baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithResource(testDNSRecordsetResource().WithDNSZoneRef("original-zone"))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(Succeed())
+
+		patch = baseDNSRecordsetPatch(dnsrecordset)
+		patch.Spec.WithResource(testDNSRecordsetResource().WithDNSZoneRef("updated-zone"))
+		Expect(applyObj(ctx, dnsrecordset, patch)).To(MatchError(ContainSubstring("dnsZoneRef is immutable")))
 	})
 })

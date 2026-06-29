@@ -255,6 +255,9 @@ func (actuator dnsRecordsetActuator) updateResource(ctx context.Context, obj orc
 	}
 
 	// Check TTL
+	// Note: Omitting/removing the optional TTL from the spec indicates that the controller
+	// should not manage the TTL (keeping the existing value). This is the safest path as
+	// Designate does not support clearing TTL values entirely.
 	if resource.TTL != nil {
 		desiredTTL := int(*resource.TTL)
 		if osResource.TTL != desiredTTL {
@@ -343,10 +346,6 @@ func newActuator(ctx context.Context, orcObject orcObjectPT, controller interfac
 				return orcv1alpha1.IsAvailable(dep) && dep.Status.ID != nil && *dep.Status.ID != ""
 			},
 		)
-	} else if orcObject.Spec.Import != nil && orcObject.Spec.Import.ID != nil {
-		return dnsRecordsetActuator{}, progress.WrapError(
-			orcerrors.Terminal(orcv1alpha1.ConditionReasonInvalidConfiguration,
-				"import by ID is not supported for DNSRecordset because recordsets are scoped under a zone; please import by filter and specify dnsZoneRef"))
 	}
 	reconcileStatus = reconcileStatus.WithReconcileStatus(dnsZoneRS)
 

@@ -8,6 +8,7 @@ resourceRefs:
       ref: dnsrecordset
 assertAll:
     - celExpr: "!has(dnsrecordset.status.resource.description)"
+    - celExpr: "dnsrecordset.status.resource.ttl == 1800"
 ---
 apiVersion: openstack.k-orc.cloud/v1alpha1
 kind: DNSRecordset
@@ -19,6 +20,7 @@ status:
     type: A
     records:
     - 1.2.3.4
+    ttl: 1800
   conditions:
   - type: Available
     status: "True"
