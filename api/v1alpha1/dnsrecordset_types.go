@@ -97,7 +97,7 @@ type DNSRecordsetImport struct {
 	// results. If filter returns multiple results the controller will set an
 	// error state and will not continue to retry.
 	// +required
-	Filter *DNSRecordsetFilter `json:"filter,omitempty"`
+	Filter *DNSRecordsetFilter `json:"filter,omitempty"` //nolint:kubeapilinter // Filter is a required pointer field because DNSRecordsetImport has no other fields, and required struct fields are represented as pointers across ORC.
 }
 
 // DNSRecordsetResourceStatus represents the observed state of the resource.
