@@ -284,9 +284,17 @@ func TestCreateResource(t *testing.T) {
 		t.Errorf("Expected error status on create failure, got nil")
 	}
 
-	// Case 4: 409 Conflict error on create
+	// Case 4: 409 Conflict error on create with properties mismatch (Terminal error)
 	errConflict := gophercloud.ErrUnexpectedResponseCode{Actual: 409}
 	mockClient.EXPECT().CreateRecordset(ctx, testZoneID, createOpts).Return(nil, errConflict)
+	listOpts := recordsets.ListOpts{
+		Name: "www.example.com.",
+		Type: "A",
+	}
+	// Return mismatching recordset (e.g., TTL = 600 instead of 300)
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "existing-id", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 600},
+	}))
 	_, status = actuator.CreateResource(ctx, orcObj)
 	if status == nil {
 		t.Fatalf("Expected error status on 409 Conflict, got nil")
@@ -301,6 +309,20 @@ func TestCreateResource(t *testing.T) {
 	}
 	if terminalErr.Reason != orcv1alpha1.ConditionReasonUnrecoverableError {
 		t.Errorf("Expected ConditionReasonUnrecoverableError, got %s", terminalErr.Reason)
+	}
+
+	// Case 5: 409 Conflict error on create with properties match (Successful adoption)
+	mockClient.EXPECT().CreateRecordset(ctx, testZoneID, createOpts).Return(nil, errConflict)
+	// Return matching recordset (TTL = 300)
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "existing-id", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 300},
+	}))
+	res, status = actuator.CreateResource(ctx, orcObj)
+	if status != nil {
+		t.Errorf("Expected nil status on 409 Conflict with match, got %v", status)
+	}
+	if res == nil || res.ID != "existing-id" {
+		t.Errorf("Expected adopted recordset with ID 'existing-id', got %v", res)
 	}
 }
 

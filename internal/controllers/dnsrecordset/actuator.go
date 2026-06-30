@@ -196,11 +196,24 @@ func (actuator dnsRecordsetActuator) CreateResource(ctx context.Context, obj orc
 
 	osResource, err := actuator.osClient.CreateRecordset(ctx, actuator.zoneID, createOpts)
 	if err != nil {
-		if !orcerrors.IsRetryable(err) {
-			reason := orcv1alpha1.ConditionReasonInvalidConfiguration
-			if orcerrors.IsConflict(err) {
-				reason = orcv1alpha1.ConditionReasonUnrecoverableError
+		if orcerrors.IsConflict(err) {
+			// Try to adopt the existing out-of-band resource if properties match
+			adoptionSeq, canAdopt := actuator.ListOSResourcesForAdoption(ctx, obj)
+			if canAdopt && adoptionSeq != nil {
+				for r, adoptErr := range adoptionSeq {
+					if adoptErr != nil {
+						return nil, progress.WrapError(adoptErr)
+					}
+					if r != nil {
+						return r, nil
+					}
+				}
 			}
+			// If we couldn't find a matching resource to adopt, treat the conflict as terminal
+			reason := orcv1alpha1.ConditionReasonUnrecoverableError
+			err = orcerrors.Terminal(reason, "duplicate recordset found and cannot be adopted: "+err.Error(), err)
+		} else if !orcerrors.IsRetryable(err) {
+			reason := orcv1alpha1.ConditionReasonInvalidConfiguration
 			err = orcerrors.Terminal(reason, "invalid configuration creating resource: "+err.Error(), err)
 		}
 		return nil, progress.WrapError(err)
