@@ -204,6 +204,33 @@ func TestListOSResourcesForAdoption(t *testing.T) {
 	if !ok || err == nil {
 		t.Errorf("Expected description mismatch error, got ok=%v, err=%v", ok, err)
 	}
+
+	// Case 7: adoption succeeds when both spec and OpenStack descriptions are empty/omitted
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "1", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 300, Description: ""},
+	}))
+	seq, _ = actuator.ListOSResourcesForAdoption(ctx, orcObj)
+	next, stop = iter.Pull2(seq)
+	defer stop()
+	f, err, ok = next()
+	if !ok || err != nil || f == nil || f.ID != "1" {
+		t.Errorf("Expected to adopt recordset with empty description, got ok=%v, err=%v, f=%v", ok, err, f)
+	}
+
+	// Case 8: adoption fails when spec description is omitted but OpenStack description is non-empty
+	mockClient.EXPECT().ListRecordsets(ctx, testZoneID, listOpts).Return(mockListRecordsets([]recordsets.RecordSet{
+		{ID: "1", Name: "www.example.com.", Type: "A", Records: []string{"1.2.3.4"}, TTL: 300, Description: "non-empty-desc"},
+	}))
+	seq, _ = actuator.ListOSResourcesForAdoption(ctx, orcObj)
+	next, stop = iter.Pull2(seq)
+	defer stop()
+	_, err, ok = next()
+	if !ok || err == nil {
+		t.Errorf("Expected description mismatch error when spec description is omitted but OpenStack description is non-empty, got ok=%v, err=%v", ok, err)
+	}
+	if !errors.As(err, &terminalErr) {
+		t.Errorf("Expected TerminalError, got %v", err)
+	}
 }
 
 func TestCreateResource(t *testing.T) {

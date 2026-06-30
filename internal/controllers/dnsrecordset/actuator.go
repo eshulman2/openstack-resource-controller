@@ -113,9 +113,14 @@ func (actuator dnsRecordsetActuator) ListOSResourcesForAdoption(ctx context.Cont
 				} else if resourceSpec.TTL != nil && f.TTL != int(*resourceSpec.TTL) {
 					matches = false
 					mismatchMsg = fmt.Sprintf("TTL mismatch: OpenStack has %d, spec has %d", f.TTL, *resourceSpec.TTL)
-				} else if resourceSpec.Description != nil && f.Description != *resourceSpec.Description {
+				} else if resourceSpec.Description != nil {
+					if f.Description != *resourceSpec.Description {
+						matches = false
+						mismatchMsg = fmt.Sprintf("description mismatch: OpenStack has %q, spec has %q", f.Description, *resourceSpec.Description)
+					}
+				} else if f.Description != "" {
 					matches = false
-					mismatchMsg = fmt.Sprintf("description mismatch: OpenStack has %q, spec has %q", f.Description, *resourceSpec.Description)
+					mismatchMsg = fmt.Sprintf("description mismatch: OpenStack has %q, spec has empty description (omitted)", f.Description)
 				}
 
 				if !matches {
