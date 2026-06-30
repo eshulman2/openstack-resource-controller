@@ -1,0 +1,51 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSZone
+metadata:
+  name: dnsrecordset-dependency
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  # TODO(scaffolding): Add the necessary fields to create the resource
+  resource:
+    name: dependency.example.com.
+    email: admin@example.com
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-dependency-no-dnszone
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  resource:
+    dnsZoneRef: dnsrecordset-dependency-pending
+    name: no-dnszone.dependency-pending.example.com.
+    type: A
+    records:
+    - 1.2.3.4
+
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-dependency-no-secret
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: dnsrecordset-dependency
+  managementPolicy: managed
+  # TODO(scaffolding): Add the necessary fields to create the resource
+  resource:
+    dnsZoneRef: dnsrecordset-dependency
+    name: no-secret.dependency.example.com.
+    type: A
+    records:
+    - 1.2.3.4

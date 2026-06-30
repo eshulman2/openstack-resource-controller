@@ -1,0 +1,33 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSZone
+metadata:
+  name: dnsrecordset-import
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  # TODO(scaffolding): Add the necessary fields to create the resource
+  resource:
+    name: import.example.com.
+    email: admin@example.com
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-import-external
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  resource:
+    description: DNSRecordset dnsrecordset-import-external from "dnsrecordset-import" test
+    dnsZoneRef: dnsrecordset-import
+    name: dnsrecordset-import-external.import.example.com.
+    type: A
+    records:
+    - 1.2.3.4

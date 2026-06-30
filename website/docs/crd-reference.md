@@ -12,6 +12,7 @@ Package v1alpha1 contains API Schema definitions for the openstack v1alpha1 API 
 ### Resource Types
 - [AddressScope](#addressscope)
 - [ApplicationCredential](#applicationcredential)
+- [DNSRecordset](#dnsrecordset)
 - [DNSZone](#dnszone)
 - [Domain](#domain)
 - [Endpoint](#endpoint)
@@ -506,6 +507,7 @@ CloudCredentialsReference is a reference to a secret containing OpenStack creden
 _Appears in:_
 - [AddressScopeSpec](#addressscopespec)
 - [ApplicationCredentialSpec](#applicationcredentialspec)
+- [DNSRecordsetSpec](#dnsrecordsetspec)
 - [DNSZoneSpec](#dnszonespec)
 - [DomainSpec](#domainspec)
 - [EndpointSpec](#endpointspec)
@@ -551,6 +553,145 @@ _Validation:_
 _Appears in:_
 - [NetworkResourceSpec](#networkresourcespec)
 
+
+
+#### DNSRecordset
+
+
+
+DNSRecordset is the Schema for an ORC resource.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `openstack.k-orc.cloud/v1alpha1` | | |
+| `kind` _string_ | `DNSRecordset` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  | Optional: \{\} <br /> |
+| `spec` _[DNSRecordsetSpec](#dnsrecordsetspec)_ | spec specifies the desired state of the resource. |  | Required: \{\} <br /> |
+| `status` _[DNSRecordsetStatus](#dnsrecordsetstatus)_ | status defines the observed state of the resource. |  | Optional: \{\} <br /> |
+
+
+#### DNSRecordsetFilter
+
+
+
+DNSRecordsetFilter defines an existing resource by its properties.
+
+_Validation:_
+- MinProperties: 1
+
+_Appears in:_
+- [DNSRecordsetImport](#dnsrecordsetimport)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `dnsZoneRef` _[KubernetesNameRef](#kubernetesnameref)_ | dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with. |  | MaxLength: 253 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `name` _[OpenStackName](#openstackname)_ | name of the existing resource. |  | MaxLength: 255 <br />MinLength: 1 <br />Pattern: `^[^,]+$` <br />Required: \{\} <br /> |
+| `type` _string_ | type of the existing resource. |  | MaxLength: 255 <br />Required: \{\} <br /> |
+| `ttl` _integer_ | ttl of the existing resource. |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+| `description` _string_ | description of the existing resource. |  | MaxLength: 255 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+
+
+#### DNSRecordsetImport
+
+
+
+DNSRecordsetImport specifies an existing resource which will be imported instead of
+creating a new one.
+
+_Validation:_
+- MaxProperties: 1
+- MinProperties: 1
+
+_Appears in:_
+- [DNSRecordsetSpec](#dnsrecordsetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `filter` _[DNSRecordsetFilter](#dnsrecordsetfilter)_ | filter contains a resource query which is expected to return a single<br />result. The controller will continue to retry if filter returns no<br />results. If filter returns multiple results the controller will set an<br />error state and will not continue to retry. |  | MinProperties: 1 <br />Required: \{\} <br /> |
+
+
+#### DNSRecordsetResourceSpec
+
+
+
+DNSRecordsetResourceSpec specifies the desired state of the resource.
+
+
+
+_Appears in:_
+- [DNSRecordsetSpec](#dnsrecordsetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _[OpenStackName](#openstackname)_ | name will be the name of the created resource. If not specified, the<br />name of the ORC object will be used. |  | MaxLength: 255 <br />MinLength: 1 <br />Pattern: `^[^,]+$` <br />Optional: \{\} <br /> |
+| `type` _string_ | type is the type of the recordset (e.g., A, AAAA, CNAME, MX, TXT, etc.). |  | MaxLength: 255 <br />Required: \{\} <br /> |
+| `records` _string array_ | records are the DNS records of the recordset. |  | MaxItems: 1024 <br />MinItems: 1 <br />items:MaxLength: 1024 <br />Required: \{\} <br /> |
+| `ttl` _integer_ | ttl is the Time To Live for the recordset. |  | Maximum: 2.147483647e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+| `description` _string_ | description is a human-readable description for the resource. |  | MaxLength: 255 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `dnsZoneRef` _[KubernetesNameRef](#kubernetesnameref)_ | dnsZoneRef is a reference to the ORC DNSZone this recordset is associated with. |  | MaxLength: 253 <br />MinLength: 1 <br />Required: \{\} <br /> |
+
+
+#### DNSRecordsetResourceStatus
+
+
+
+DNSRecordsetResourceStatus represents the observed state of the resource.
+
+
+
+_Appears in:_
+- [DNSRecordsetStatus](#dnsrecordsetstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | name is a human-readable name for the resource. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |
+| `type` _string_ | type is the type of the recordset. |  | MaxLength: 255 <br />Optional: \{\} <br /> |
+| `records` _string array_ | records are the DNS records of the recordset. |  | MaxItems: 1024 <br />items:MaxLength: 1024 <br />Optional: \{\} <br /> |
+| `ttl` _integer_ | ttl is the Time To Live for the recordset in seconds. |  | Optional: \{\} <br /> |
+| `description` _string_ | description is a human-readable description for the resource. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |
+| `status` _string_ | status is the status of the resource. |  | MaxLength: 255 <br />Optional: \{\} <br /> |
+
+
+#### DNSRecordsetSpec
+
+
+
+DNSRecordsetSpec defines the desired state of an ORC object.
+
+
+
+_Appears in:_
+- [DNSRecordset](#dnsrecordset)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `import` _[DNSRecordsetImport](#dnsrecordsetimport)_ | import refers to an existing OpenStack resource which will be imported instead of<br />creating a new one. |  | MaxProperties: 1 <br />MinProperties: 1 <br />Optional: \{\} <br /> |
+| `resource` _[DNSRecordsetResourceSpec](#dnsrecordsetresourcespec)_ | resource specifies the desired state of the resource.<br />resource may not be specified if the management policy is `unmanaged`.<br />resource must be specified if the management policy is `managed`. |  | Optional: \{\} <br /> |
+| `managementPolicy` _[ManagementPolicy](#managementpolicy)_ | managementPolicy defines how ORC will treat the object. Valid values are<br />`managed`: ORC will create, update, and delete the resource; `unmanaged`:<br />ORC will import an existing resource, and will not apply updates to it or<br />delete it. | managed | Enum: [managed unmanaged] <br />Optional: \{\} <br /> |
+| `managedOptions` _[ManagedOptions](#managedoptions)_ | managedOptions specifies options which may be applied to managed objects. |  | Optional: \{\} <br /> |
+| `cloudCredentialsRef` _[CloudCredentialsReference](#cloudcredentialsreference)_ | cloudCredentialsRef points to a secret containing OpenStack credentials |  | Required: \{\} <br /> |
+
+
+#### DNSRecordsetStatus
+
+
+
+DNSRecordsetStatus defines the observed state of an ORC resource.
+
+
+
+_Appears in:_
+- [DNSRecordset](#dnsrecordset)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#condition-v1-meta) array_ | conditions represents the observed status of the object.<br />Known .status.conditions.type are: "Available", "Progressing"<br />Available represents the availability of the OpenStack resource. If it is<br />true then the resource is ready for use.<br />Progressing indicates whether the controller is still attempting to<br />reconcile the current state of the OpenStack resource to the desired<br />state. Progressing will be False either because the desired state has<br />been achieved, or because some terminal error prevents it from ever being<br />achieved and the controller is no longer attempting to reconcile. If<br />Progressing is True, an observer waiting on the resource should continue<br />to wait. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
+| `id` _string_ | id is the unique identifier of the OpenStack resource. |  | MaxLength: 1024 <br />Optional: \{\} <br /> |
+| `resource` _[DNSRecordsetResourceStatus](#dnsrecordsetresourcestatus)_ | resource contains the observed state of the OpenStack resource. |  | Optional: \{\} <br /> |
 
 
 #### DNSZone
@@ -2348,6 +2489,8 @@ _Appears in:_
 - [ApplicationCredentialAccessRule](#applicationcredentialaccessrule)
 - [ApplicationCredentialFilter](#applicationcredentialfilter)
 - [ApplicationCredentialResourceSpec](#applicationcredentialresourcespec)
+- [DNSRecordsetFilter](#dnsrecordsetfilter)
+- [DNSRecordsetResourceSpec](#dnsrecordsetresourcespec)
 - [EndpointFilter](#endpointfilter)
 - [EndpointResourceSpec](#endpointresourcespec)
 - [ExternalGateway](#externalgateway)
@@ -2428,6 +2571,7 @@ _Appears in:_
 _Appears in:_
 - [AddressScopeSpec](#addressscopespec)
 - [ApplicationCredentialSpec](#applicationcredentialspec)
+- [DNSRecordsetSpec](#dnsrecordsetspec)
 - [DNSZoneSpec](#dnszonespec)
 - [DomainSpec](#domainspec)
 - [EndpointSpec](#endpointspec)
@@ -2470,6 +2614,7 @@ _Validation:_
 _Appears in:_
 - [AddressScopeSpec](#addressscopespec)
 - [ApplicationCredentialSpec](#applicationcredentialspec)
+- [DNSRecordsetSpec](#dnsrecordsetspec)
 - [DNSZoneSpec](#dnszonespec)
 - [DomainSpec](#domainspec)
 - [EndpointSpec](#endpointspec)
@@ -2778,6 +2923,8 @@ _Appears in:_
 - [AddressScopeResourceSpec](#addressscoperesourcespec)
 - [ApplicationCredentialFilter](#applicationcredentialfilter)
 - [ApplicationCredentialResourceSpec](#applicationcredentialresourcespec)
+- [DNSRecordsetFilter](#dnsrecordsetfilter)
+- [DNSRecordsetResourceSpec](#dnsrecordsetresourcespec)
 - [DNSZoneFilter](#dnszonefilter)
 - [DNSZoneResourceSpec](#dnszoneresourcespec)
 - [FlavorFilter](#flavorfilter)

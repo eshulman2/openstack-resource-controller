@@ -1,0 +1,15 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-import
+status:
+  conditions:
+    - type: Available
+      message: Waiting for DNSZone/dnsrecordset-import to be created
+      status: "False"
+      reason: Progressing
+    - type: Progressing
+      message: Waiting for DNSZone/dnsrecordset-import to be created
+      status: "True"
+      reason: Progressing

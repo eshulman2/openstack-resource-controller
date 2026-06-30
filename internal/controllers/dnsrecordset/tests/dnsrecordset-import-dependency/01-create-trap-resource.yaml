@@ -1,0 +1,33 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSZone
+metadata:
+  name: dnsrecordset-import-dependency-not-this-one
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  # TODO(scaffolding): Add the necessary fields to create the resource
+  resource:
+    name: import-dependency-not-this-one.example.com.
+    email: admin@example.com
+---
+# This `dnsrecordset-import-dependency-not-this-one` should not be picked by the import filter
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: DNSRecordset
+metadata:
+  name: dnsrecordset-import-dependency-not-this-one
+spec:
+  cloudCredentialsRef:
+    # TODO(scaffolding): Use openstack-admin if the resource needs admin credentials to be created
+    cloudName: openstack
+    secretName: openstack-clouds
+  managementPolicy: managed
+  resource:
+    dnsZoneRef: dnsrecordset-import-dependency-not-this-one
+    name: not-this-one.import-dependency-not-this-one.example.com.
+    type: A
+    records:
+    - 1.2.3.4

@@ -36,6 +36,10 @@ func (c *FakeOpenstackV1alpha1) ApplicationCredentials(namespace string) v1alpha
 	return newFakeApplicationCredentials(c, namespace)
 }
 
+func (c *FakeOpenstackV1alpha1) DNSRecordsets(namespace string) v1alpha1.DNSRecordsetInterface {
+	return newFakeDNSRecordsets(c, namespace)
+}
+
 func (c *FakeOpenstackV1alpha1) DNSZones(namespace string) v1alpha1.DNSZoneInterface {
 	return newFakeDNSZones(c, namespace)
 }

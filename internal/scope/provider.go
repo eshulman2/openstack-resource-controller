@@ -153,6 +153,10 @@ func (s *providerScope) NewDNSZoneClient() (clients.DNSZoneClient, error) {
 	return clients.NewDNSZoneClient(s.providerClient, s.providerClientOpts)
 }
 
+func (s *providerScope) NewDNSRecordsetClient() (clients.DNSRecordsetClient, error) {
+	return clients.NewDNSRecordsetClient(s.providerClient, s.providerClientOpts)
+}
+
 func (s *providerScope) NewNetworkClient() (clients.NetworkClient, error) {
 	return clients.NewNetworkClient(s.providerClient, s.providerClientOpts)
 }

@@ -81,7 +81,7 @@ func (f adapterT) GetImportFilter() *filterT {
 // This method is not implemented as part of APIObjectAdapter as it is intended
 // to be used by resource actuators, which don't use the adapter.
 func getResourceName(orcObject orcObjectPT) string {
-	if orcObject.Spec.Resource.Name != nil {
+	if orcObject.Spec.Resource != nil && orcObject.Spec.Resource.Name != nil {
 		return string(*orcObject.Spec.Resource.Name)
 	}
 	return orcObject.Name
